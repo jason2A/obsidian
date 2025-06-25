@@ -5,8 +5,6 @@ import spacy
 # Load NLP tools
 summarizer = pipeline("summarization")
 classifier = pipeline("sentiment-analysis")
-import spacy.cli
-spacy.cli.download("en_core_web_sm")
 ner = spacy.load("en_core_web_sm")
 
 st.set_page_config(page_title="Obsidian Protocol", layout="wide")
@@ -24,22 +22,22 @@ if st.button("🔍 Analyze"):
         summary = summarizer(user_input, max_length=60, min_length=20, do_sample=False)[0]["summary_text"]
 
         # Get sentiment
-        tone = classifier(user_input)[0]
+        sentiment = classifier(user_input)[0]
 
-        # Extract entities
+        # Named Entity Recognition
         doc = ner(user_input)
-        entities = list(set([ent.text for ent in doc.ents if ent.label_ in ["PERSON", "ORG", "GPE"]]))
+        entities = [(ent.text, ent.label_) for ent in doc.ents]
 
-        st.success("✅ Analysis Complete")
-        
-        st.markdown("### 📝 Summary")
-        st.write(summary)
+        # Display results
+        st.markdown("### 🧠 Summary")
+        st.info(summary)
 
-        st.markdown("### 🎭 Tone")
-        st.write(f"Label: `{tone['label']}` | Score: `{round(tone['score'], 2)}`")
+        st.markdown("### 🎭 Sentiment")
+        st.success(f"**Label:** {sentiment['label']}, **Confidence:** {round(sentiment['score'], 2)}")
 
         st.markdown("### 🕵️ Key Entities")
         if entities:
-            st.write(", ".join(entities))
+            for entity, label in entities:
+                st.write(f"• **{entity}** ({label})")
         else:
-            st.write("No major people, organizations, or locations found.")
+            st.write("No named entities found.")
