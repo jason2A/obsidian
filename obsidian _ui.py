@@ -5,6 +5,8 @@ import spacy
 # Load NLP tools
 summarizer = pipeline("summarization")
 classifier = pipeline("sentiment-analysis")
+import spacy.cli
+spacy.cli.download("en_core_web_sm")
 ner = spacy.load("en_core_web_sm")
 
 st.set_page_config(page_title="Obsidian Protocol", layout="wide")
