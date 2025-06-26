@@ -2,9 +2,13 @@ import streamlit as st
 from transformers import pipeline
 import spacy
 
-# Load NLP tools
+# Load pre-installed SpaCy model (no download)
+ner = spacy.load("en_core_web_sm")
+
+# Load transformers pipelines
 summarizer = pipeline("summarization")
 classifier = pipeline("sentiment-analysis")
+
 ner = spacy.load("en_core_web_sm")
 
 st.set_page_config(page_title="Obsidian Protocol", layout="wide")
