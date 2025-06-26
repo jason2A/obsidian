@@ -4,9 +4,15 @@ import spacy
 import en_core_web_sm
 ner = en_core_web_sm.load()  
 
-summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
-classifier = pipeline("sentiment-analysis", model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")
+summarizer = pipeline(
+    "summarization",
+    model="sshleifer/distilbart-cnn-12-6"
+)
 
+classifier = pipeline(
+    "sentiment-analysis",
+    model="distilbert-base-uncased-finetuned-sst-2-english"
+)
 
 st.set_page_config(page_title="Obsidian Protocol", layout="wide")
 
