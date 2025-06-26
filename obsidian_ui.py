@@ -1,9 +1,9 @@
 import streamlit as st
 from transformers import pipeline
 import spacy
+import en_core_web_sm
+ner = en_core_web_sm.load()  
 
-# Load models
-ner = spacy.load("en_core_web_sm")
 summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 classifier = pipeline("sentiment-analysis", model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")
 
