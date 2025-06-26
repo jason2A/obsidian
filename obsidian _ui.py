@@ -2,13 +2,12 @@ import streamlit as st
 from transformers import pipeline
 import spacy
 
-# Load pre-installed SpaCy model (no download)
+# Load SpaCy model (installed via requirements.txt)
 ner = spacy.load("en_core_web_sm")
 
 # Load transformers pipelines
-summarizer = pipeline("summarization")
-classifier = pipeline("sentiment-analysis")
-
+summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+classifier = pipeline("sentiment-analysis", model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")
 ner = spacy.load("en_core_web_sm")
 
 st.set_page_config(page_title="Obsidian Protocol", layout="wide")
