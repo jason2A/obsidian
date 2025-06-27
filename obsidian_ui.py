@@ -1,13 +1,18 @@
-import streamlit as st
-from transformers import pipeline
-import spacy
-import en_core_web_sm
-ner = en_core_web_sm.load()  
+import subprocess
+import importlib.util
 
-summarizer = pipeline(
-    "summarization",
-    model="sshleifer/distilbart-cnn-12-6"
-)
+# Automatically download SpaCy model if it's missing
+def ensure_spacy_model():
+    try:
+        import spacy
+        spacy.load("en_core_web_sm")
+    except (OSError, ImportError):
+        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+        import spacy
+        spacy.load("en_core_web_sm")
+
+ensure_spacy_model()
+
 
 classifier = pipeline(
     "sentiment-analysis",
