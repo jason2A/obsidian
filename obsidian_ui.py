@@ -4,13 +4,21 @@ import importlib.util
 # Automatically download SpaCy model if it's missing
 def ensure_spacy_model():
     try:
-        import spacy
-        spacy.load("en_core_web_sm")
-    except (OSError, ImportError):
-        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
-        import spacy
-        spacy.load("en_core_web_sm")
+   import subprocess
 
+def ensure_spacy_model():
+    try:
+        import spacy
+        spacy.load("en_core_web_sm")
+    except (ImportError, OSError):
+        subprocess.run(["pip", "install", "spacy"])
+        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+
+ensure_spacy_model()
+
+import spacy
+nlp = spacy.load("en_core_web_sm")
+  
 ensure_spacy_model()
 
 
