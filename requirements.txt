@@ -1,4 +1,5 @@
 streamlit
-transformers==4.41.1
+transformers==4.37.0
 torch
 spacy==3.8.0
+
