@@ -1,5 +1,6 @@
 streamlit
-transformers==4.41.0
+transformers==4.37.0
+tokenizers==0.18.1
 torch
 spacy==3.8.0
 
