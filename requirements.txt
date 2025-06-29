@@ -1,6 +1,5 @@
 streamlit==1.26.0
-transformers==4.36.2
+transformers==4.35.3
 tokenizers==0.14.1
 torch==2.7.1
-spacy==3.8.0
-
+spacy-nightly
