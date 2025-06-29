@@ -1,8 +1,23 @@
 import streamlit as st
 from transformers import pipeline
 import spacy
+import subprocess
+import sys
 
-# Load spacy model (guaranteed installed via requirements.txt)
+# Ensure the spaCy model is linked properly (needed when installing via tar.gz)
+def ensure_spacy_model():
+    try:
+        spacy.load("en_core_web_sm")
+    except OSError:
+        subprocess.run([
+            sys.executable,
+            "-m", "spacy", "link",
+            "en_core_web_sm-3.8.0", "en_core_web_sm"
+        ], check=True)
+
+ensure_spacy_model()
+
+# Load spacy model
 nlp = spacy.load("en_core_web_sm")
 
 # Load HuggingFace pipelines
