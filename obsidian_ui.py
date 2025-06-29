@@ -1,17 +1,20 @@
 import streamlit as st
 import subprocess
 import sys
-from transformers import pipeline
-import spacy
 
-# Automatically download SpaCy model if it's missing
+# ✅ Ensure the SpaCy model is downloaded BEFORE importing spacy
 def ensure_spacy_model():
     try:
+        import spacy
         spacy.load("en_core_web_sm")
-    except OSError:
-        subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+    except (OSError, ImportError):
+        subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], check=True)
 
 ensure_spacy_model()
+
+# ✅ Now import spacy safely
+import spacy
+from transformers import pipeline
 
 # Load spacy model
 nlp = spacy.load("en_core_web_sm")
@@ -55,3 +58,5 @@ if st.button("🔍 Analyze"):
                 st.write(f"• **{entity}** ({label})")
         else:
             st.write("No named entities found.")
+
+        
