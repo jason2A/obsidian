@@ -1,6 +1,6 @@
 import streamlit as st
 import subprocess
-import importlib.util
+import sys
 from transformers import pipeline
 import spacy
 
@@ -8,9 +8,8 @@ import spacy
 def ensure_spacy_model():
     try:
         spacy.load("en_core_web_sm")
-    except (ImportError, OSError):
-        subprocess.run(["pip", "install", "spacy"])
-        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+    except OSError:
+        subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
 
 ensure_spacy_model()
 
