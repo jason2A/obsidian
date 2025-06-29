@@ -1,22 +1,8 @@
 import streamlit as st
-import subprocess
-import sys
-
-# ✅ Ensure the SpaCy model is downloaded BEFORE importing spacy
-def ensure_spacy_model():
-    try:
-        import spacy
-        spacy.load("en_core_web_sm")
-    except (OSError, ImportError):
-        subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], check=True)
-
-ensure_spacy_model()
-
-# ✅ Now import spacy safely
-import spacy
 from transformers import pipeline
+import spacy
 
-# Load spacy model
+# Load spacy model (guaranteed installed via requirements.txt)
 nlp = spacy.load("en_core_web_sm")
 
 # Load HuggingFace pipelines
@@ -58,5 +44,3 @@ if st.button("🔍 Analyze"):
                 st.write(f"• **{entity}** ({label})")
         else:
             st.write("No named entities found.")
-
-        
