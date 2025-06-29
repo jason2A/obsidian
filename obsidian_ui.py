@@ -1,23 +1,12 @@
 import streamlit as st
 from transformers import pipeline
 import spacy
-import subprocess
-import sys
+import warnings
 
-# Ensure the spaCy model is linked properly (needed when installing via tar.gz)
-def ensure_spacy_model():
-    try:
-        spacy.load("en_core_web_sm")
-    except OSError:
-        subprocess.run([
-            sys.executable,
-            "-m", "spacy", "link",
-            "en_core_web_sm-3.8.0", "en_core_web_sm"
-        ], check=True)
+# Suppress specific warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
-ensure_spacy_model()
-
-# Load spacy model
+# Load spaCy model
 nlp = spacy.load("en_core_web_sm")
 
 # Load HuggingFace pipelines
@@ -36,17 +25,11 @@ if st.button("🔍 Analyze"):
     if user_input.strip() == "":
         st.warning("Please paste some text to analyze.")
     else:
-        # Generate summary
         summary = summarizer(user_input, max_length=60, min_length=20, do_sample=False)[0]["summary_text"]
-
-        # Get sentiment
         sentiment = classifier(user_input)[0]
-
-        # Named Entity Recognition
         doc = nlp(user_input)
         entities = [(ent.text, ent.label_) for ent in doc.ents]
 
-        # Display results
         st.markdown("### 🧠 Summary")
         st.info(summary)
 
@@ -59,3 +42,4 @@ if st.button("🔍 Analyze"):
                 st.write(f"• **{entity}** ({label})")
         else:
             st.write("No named entities found.")
+
