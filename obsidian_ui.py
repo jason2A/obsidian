@@ -27,13 +27,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ✅ LOAD MODELS
 @st.cache_resource
 def load_models():
     nlp = spacy.load("en_core_web_sm")
     summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
     classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-    translator = pipeline("translation_en_to_fr", model="Helsinki-NLP/opus-mt-en-fr")
+    translator = pipeline("translation", model="Helsinki-NLP/opus-mt-en-fr")  # Fixed
     return nlp, summarizer, classifier, translator
 
 nlp, summarizer, classifier, translator = load_models()
