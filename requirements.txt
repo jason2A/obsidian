@@ -1,6 +1,6 @@
 streamlit==1.26.0
 transformers==4.39.3
-torch==2.7.1
+torch==2.2.2
 spacy==3.8.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0.tar.gz
 youtube-transcript-api
@@ -8,6 +8,4 @@ beautifulsoup4
 requests
 PyPDF2
 pytesseract
-openai
-whisper
 Pillow
