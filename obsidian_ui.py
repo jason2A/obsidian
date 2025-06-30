@@ -9,16 +9,16 @@ from PIL import Image
 import pytesseract
 import base64
 
-# 🧠 UI CONFIG
+# 🎨 Dark Mode UI Styling
 st.set_page_config(page_title="Obsidian Protocol", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
     <style>
-        .main { font-family: 'Helvetica Neue', sans-serif; background-color: #0e1117; color: white; }
+        .main { background-color: #0e1117; color: white; font-family: 'Helvetica Neue', sans-serif; }
         .stButton>button {
             background-color: #222;
             color: white;
-            padding: 0.5rem 1rem;
             border-radius: 8px;
+            padding: 0.5rem 1rem;
         }
         .stTextArea textarea {
             background-color: #1e222a;
@@ -27,17 +27,23 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# ✅ Load all models with fallback on translator
 @st.cache_resource
 def load_models():
     nlp = spacy.load("en_core_web_sm")
     summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
     classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-    translator = pipeline("translation", model="Helsinki-NLP/opus-mt-en-fr")  # Fixed
+    
+    try:
+        translator = pipeline("translation", model="Helsinki-NLP/opus-mt-en-fr")
+    except:
+        translator = None  # Fallback if translation model fails
+
     return nlp, summarizer, classifier, translator
 
 nlp, summarizer, classifier, translator = load_models()
 
-# 🧾 UTILITIES
+# 📥 Utilities
 def extract_text_from_pdf(file):
     reader = PyPDF2.PdfReader(file)
     return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
@@ -48,7 +54,7 @@ def extract_text_from_url(url):
         soup = BeautifulSoup(html, "html.parser")
         return "\n".join(p.get_text() for p in soup.find_all("p"))
     except:
-        return "❌ Unable to extract text."
+        return "❌ Unable to extract text from URL."
 
 def extract_transcript_from_youtube(url):
     try:
@@ -62,19 +68,19 @@ def generate_download_link(text, filename):
     b64 = base64.b64encode(text.encode()).decode()
     return f'<a href="data:file/txt;base64,{b64}" download="{filename}">📄 Download Result</a>'
 
-# 🎨 APP UI
+# 🔘 User Interface
 st.title("🧠 Obsidian Protocol")
-st.subheader("Reveal the truth behind any media, speech, or post — powered by transformers and vision AI.")
+st.subheader("Reveal the truth behind any media, speech, or post — with advanced AI.")
 
 input_mode = st.radio("Choose input type:", ["Text", "Upload File", "Article URL", "YouTube Video", "Image (OCR)"])
 input_text = ""
 
-# 📥 GET TEXT BASED ON INPUT TYPE
+# 📥 Input Handling
 if input_mode == "Text":
     input_text = st.text_area("Paste your article, speech, or social post:")
 
 elif input_mode == "Upload File":
-    uploaded_file = st.file_uploader("Upload a .txt or .pdf file", type=["txt", "pdf"])
+    uploaded_file = st.file_uploader("Upload .txt or .pdf file", type=["txt", "pdf"])
     if uploaded_file:
         if uploaded_file.type == "application/pdf":
             input_text = extract_text_from_pdf(uploaded_file)
@@ -99,20 +105,24 @@ elif input_mode == "Image (OCR)":
         input_text = pytesseract.image_to_string(image)
         st.text_area("Extracted Text", value=input_text, height=150)
 
-# 🔍 ANALYZE
+# 🔍 Analyze Button
 if st.button("🔍 Analyze"):
     if input_text.strip() == "":
-        st.warning("Please provide valid input.")
+        st.warning("⚠️ Please provide valid input.")
     else:
         with st.spinner("Analyzing with Obsidian Engine..."):
-            # 🔎 NLP Tasks
+            # Run NLP Pipelines
             summary = summarizer(input_text, max_length=80, min_length=20, do_sample=False)[0]["summary_text"]
             sentiment = classifier(input_text[:512])[0]
             doc = nlp(input_text)
             entities = [(ent.text, ent.label_) for ent in doc.ents]
-            translated = translator(summary)[0]["translation_text"]
 
-        # 📊 OUTPUT
+            if translator:
+                translated = translator(summary)[0]["translation_text"]
+            else:
+                translated = "⚠️ Translation model not available."
+
+        # 🎯 Output
         st.markdown("### 🧠 Summary")
         st.info(summary)
 
@@ -129,9 +139,9 @@ if st.button("🔍 Analyze"):
         else:
             st.info("No named entities found.")
 
-        final_result = f"Summary:\n{summary}\n\nSentiment: {sentiment['label']} ({round(sentiment['score'],2)})\n\nEntities: {entities}"
+        final_result = f"Summary:\n{summary}\n\nTranslation:\n{translated}\n\nSentiment: {sentiment['label']} ({round(sentiment['score'],2)})\n\nEntities: {entities}"
         st.markdown(generate_download_link(final_result, "obsidian_result.txt"), unsafe_allow_html=True)
 
-# ℹ️ FOOTER
+# ℹ️ Footer
 st.markdown("---")
-st.caption("⚡ Obsidian Protocol — AI-powered media analyzer built with Streamlit, Transformers, SpaCy, and Vision AI.")
+st.caption("⚡ Obsidian Protocol — Built with Transformers, SpaCy, OCR, and Streamlit.")
