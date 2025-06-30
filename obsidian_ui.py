@@ -6,48 +6,51 @@ import requests
 from bs4 import BeautifulSoup
 import PyPDF2
 import io
+from PIL import Image
+import pytesseract
+import whisper
+import openai
+import base64
 
-# 🧠 Streamlit Config — must be first Streamlit command
+# Setup API key for OpenAI (replace with st.secrets in production)
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
+# Page Setup
 st.set_page_config(page_title="Obsidian Protocol", layout="wide", initial_sidebar_state="expanded")
+st.markdown("""<style>body { background-color: #0E1117; color: #FAFAFA; }</style>""", unsafe_allow_html=True)
 
-# ✅ Cache NLP models to prevent reloading every time
+# Cache models
 @st.cache_resource
-def load_spacy_model():
-    return spacy.load("en_core_web_sm")
-
-@st.cache_resource
-def load_huggingface_models():
+def load_models():
     summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
     classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-    return summarizer, classifier
+    translator = pipeline("translation_en_to_fr", model="Helsinki-NLP/opus-mt-en-fr")
+    spacy_model = spacy.load("en_core_web_sm")
+    whisper_model = whisper.load_model("base")
+    return summarizer, classifier, translator, spacy_model, whisper_model
 
-# Load models
-nlp = load_spacy_model()
-summarizer, classifier = load_huggingface_models()
+summarizer, classifier, translator, nlp, whisper_model = load_models()
 
-# 🎨 App UI
+# Title
 st.title("🧠 Obsidian Protocol")
-st.subheader("Reveal the truth behind any media, speech, or post.")
+st.subheader("Reveal truth in text, image, video, audio or link — powered by AI")
 
-input_mode = st.radio("Select input type:", ["Text Input", "Upload File", "Article URL", "YouTube Video"])
+# Input Modes
+input_mode = st.radio("Select input type", ["Text", "Upload File", "Article URL", "YouTube Video", "Image", "Audio", "Chat with GPT"])
+input_text = ""
 
-# 📥 Get text based on input mode
+# Utilities
 def extract_text_from_pdf(file):
     reader = PyPDF2.PdfReader(file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+    return "\n".join(p.extract_text() for p in reader.pages if p.extract_text())
 
 def extract_text_from_url(url):
     try:
         html = requests.get(url, timeout=10).text
         soup = BeautifulSoup(html, "html.parser")
-        paragraphs = soup.find_all("p")
-        text = "\n".join(p.get_text() for p in paragraphs)
-        return text
+        return "\n".join(p.get_text() for p in soup.find_all("p"))
     except:
-        return "Unable to extract text from URL."
+        return "Unable to extract text."
 
 def extract_transcript_from_youtube(url):
     try:
@@ -57,42 +60,70 @@ def extract_transcript_from_youtube(url):
     except Exception as e:
         return f"Transcript fetch failed: {str(e)}"
 
-input_text = ""
+def transcribe_audio(audio_file):
+    audio_bytes = audio_file.read()
+    with open("temp.wav", "wb") as f:
+        f.write(audio_bytes)
+    result = whisper_model.transcribe("temp.wav")
+    return result["text"]
 
-if input_mode == "Text Input":
-    input_text = st.text_area("Paste your article, speech, or social post:")
+def extract_text_from_image(image_file):
+    image = Image.open(image_file)
+    return pytesseract.image_to_string(image)
+
+def download_link(text, filename="obsidian_output.txt"):
+    b64 = base64.b64encode(text.encode()).decode()
+    return f'<a href="data:file/txt;base64,{b64}" download="{filename}">📄 Download Result</a>'
+
+# Input Handling
+if input_mode == "Text":
+    input_text = st.text_area("Paste your text:")
 
 elif input_mode == "Upload File":
-    uploaded_file = st.file_uploader("Upload .txt or .pdf file", type=["txt", "pdf"])
-    if uploaded_file:
-        if uploaded_file.type == "application/pdf":
-            input_text = extract_text_from_pdf(uploaded_file)
-        elif uploaded_file.type == "text/plain":
-            input_text = uploaded_file.read().decode("utf-8")
+    file = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"])
+    if file:
+        input_text = extract_text_from_pdf(file) if file.type == "application/pdf" else file.read().decode()
 
 elif input_mode == "Article URL":
-    url = st.text_input("Enter article URL:")
+    url = st.text_input("Enter article URL")
     if url:
         input_text = extract_text_from_url(url)
 
 elif input_mode == "YouTube Video":
-    yt_url = st.text_input("Enter YouTube video link:")
+    yt_url = st.text_input("Enter YouTube video URL")
     if yt_url:
         input_text = extract_transcript_from_youtube(yt_url)
 
-# 🔍 Analyze Button
-if st.button("🔍 Analyze"):
+elif input_mode == "Image":
+    img_file = st.file_uploader("Upload PNG/JPG image", type=["png", "jpg"])
+    if img_file:
+        input_text = extract_text_from_image(img_file)
+
+elif input_mode == "Audio":
+    audio_file = st.file_uploader("Upload MP3/WAV", type=["mp3", "wav"])
+    if audio_file:
+        input_text = transcribe_audio(audio_file)
+
+elif input_mode == "Chat with GPT":
+    chat_prompt = st.text_area("Ask GPT anything:")
+    if st.button("Ask"):
+        with st.spinner("Thinking..."):
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": chat_prompt}]
+            )
+            st.markdown("### 💬 GPT Response")
+            st.success(response.choices[0].message.content)
+
+# 🔍 Analysis
+if input_mode != "Chat with GPT" and st.button("🔍 Analyze"):
     if input_text.strip() == "":
         st.warning("Please provide valid input.")
     else:
         with st.spinner("Analyzing..."):
-            # Summary
-            summary = summarizer(input_text, max_length=80, min_length=20, do_sample=False)[0]["summary_text"]
-
-            # Sentiment
+            summary = summarizer(input_text, max_length=100, min_length=30, do_sample=False)[0]["summary_text"]
             sentiment = classifier(input_text[:512])[0]
-
-            # Entities
+            translated = translator(summary)[0]['translation_text']
             doc = nlp(input_text)
             entities = [(ent.text, ent.label_) for ent in doc.ents]
 
@@ -100,12 +131,22 @@ if st.button("🔍 Analyze"):
         st.markdown("### 🧠 Summary")
         st.info(summary)
 
+        st.markdown("### 🌍 French Translation")
+        st.info(translated)
+
         st.markdown("### 🎭 Sentiment")
-        st.success(f"**Label:** {sentiment['label']} &nbsp;&nbsp; | &nbsp;&nbsp; **Confidence:** {round(sentiment['score'], 2)}")
+        st.success(f"**Label:** {sentiment['label']} | **Confidence:** {round(sentiment['score'], 2)}")
 
         st.markdown("### 🕵️ Named Entities")
         if entities:
-            for entity, label in entities:
-                st.write(f"• **{entity}** ({label})")
+            for ent, label in entities:
+                st.write(f"• **{ent}** ({label})")
         else:
             st.write("No named entities found.")
+
+        result = f"Summary:\n{summary}\n\nSentiment: {sentiment['label']} ({round(sentiment['score'],2)})\n\nEntities: {entities}"
+        st.markdown(download_link(result), unsafe_allow_html=True)
+
+# Footer
+st.markdown("---")
+st.caption("Obsidian Protocol ✦ All-in-One AI Truth Analyzer ✦ Built with Streamlit + HuggingFace + Whisper + OpenAI")
