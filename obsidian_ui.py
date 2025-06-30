@@ -10,10 +10,20 @@ import io
 # 🧠 Streamlit Config — must be first Streamlit command
 st.set_page_config(page_title="Obsidian Protocol", layout="wide", initial_sidebar_state="expanded")
 
-# 📦 Load NLP models
-nlp = spacy.load("en_core_web_sm")
-summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
-classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+# ✅ Cache NLP models to prevent reloading every time
+@st.cache_resource
+def load_spacy_model():
+    return spacy.load("en_core_web_sm")
+
+@st.cache_resource
+def load_huggingface_models():
+    summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+    classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+    return summarizer, classifier
+
+# Load models
+nlp = load_spacy_model()
+summarizer, classifier = load_huggingface_models()
 
 # 🎨 App UI
 st.title("🧠 Obsidian Protocol")
