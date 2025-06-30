@@ -7,3 +7,7 @@ youtube-transcript-api
 beautifulsoup4
 requests
 PyPDF2
+pytesseract
+openai
+whisper
+Pillow
