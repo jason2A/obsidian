@@ -1,146 +1,103 @@
 import streamlit as st
-from transformers import pipeline
-import spacy
-from youtube_transcript_api import YouTubeTranscriptApi
-import requests
-from bs4 import BeautifulSoup
-import PyPDF2
-from PIL import Image
-import pytesseract
-import base64
+import tempfile
+import os
 
-# 🌙 DARK MODE + UI STYLING
-st.set_page_config(page_title="Obsidian Protocol", layout="wide", initial_sidebar_state="expanded")
-st.markdown("""
-    <style>
-        html, body, .main, .stApp {
-            background-color: #0e1117;
-            color: white;
-            font-family: 'Helvetica Neue', sans-serif;
-        }
-        .stTextArea textarea {
-            background-color: #1e222a !important;
-            color: white !important;
-        }
-        .stButton>button {
-            background-color: #222 !important;
-            color: white !important;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-        }
-        .stRadio > div {
-            color: white !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# Try to import whisper, else show install instructions
+try:
+    import whisper
+    whisper_available = True
+except ImportError:
+    whisper_available = False
 
-# 🔄 CACHED MODEL LOADERS
-@st.cache_resource
-def load_models():
-    nlp = spacy.load("en_core_web_sm")
-    summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
-    classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-    try:
-        translator = pipeline("translation_en_to_fr", model="Helsinki-NLP/opus-mt-en-fr")
-    except:
-        translator = None
-    return nlp, summarizer, classifier, translator
+st.set_page_config(page_title="Obsidian Protocol v2.0", layout="wide")
 
-nlp, summarizer, classifier, translator = load_models()
+# Sidebar
+st.sidebar.title("🧠 Obsidian Protocol v2.0")
+st.sidebar.markdown("AI-powered Media Analyzer")
+st.sidebar.info("Upload your media and get instant AI insights.")
 
-# 📥 TEXT EXTRACTORS
-def extract_text_from_pdf(file):
-    reader = PyPDF2.PdfReader(file)
-    return "\n".join(page.extract_text() for page in reader.pages if page.extract_text())
+# Tabs
+TABS = ["Analyze File", "Live Chat", "History"]
+tab1, tab2, tab3 = st.tabs(TABS)
 
-def extract_text_from_url(url):
-    try:
-        html = requests.get(url, timeout=10).text
-        soup = BeautifulSoup(html, "html.parser")
-        return "\n".join(p.get_text() for p in soup.find_all("p"))
-    except:
-        return "❌ Failed to extract text from URL."
+# Session state for chat
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
 
-def extract_transcript_from_youtube(url):
-    try:
-        video_id = url.split("v=")[-1].split("&")[0]
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        return " ".join([item["text"] for item in transcript])
-    except Exception as e:
-        return f"❌ Transcript fetch failed: {str(e)}"
+if "transcription" not in st.session_state:
+    st.session_state["transcription"] = None
 
-def generate_download_link(text, filename):
-    b64 = base64.b64encode(text.encode()).decode()
-    return f'<a href="data:file/txt;base64,{b64}" download="{filename}">📄 Download Result</a>'
+with tab1:
+    st.header("Analyze File")
+    uploaded_file = st.file_uploader(
+        "Upload a media file (audio, video, image, or document)",
+        type=["mp3", "wav", "mp4", "mov", "jpg", "jpeg", "png", "pdf", "txt"],
+        help="Supported formats: audio, video, image, PDF, text."
+    )
+    user_prompt = st.text_area(
+        "Enter notes or an AI prompt (optional)",
+        placeholder="E.g., Summarize this file, extract key points, etc."
+    )
+    analyze = st.button("Analyze with AI", key="analyze_btn")
 
-# 🧠 UI TITLE
-st.title("🧠 Obsidian Protocol")
-st.subheader("Reveal the truth behind media, speech, or articles — powered by AI.")
-
-input_mode = st.radio("Choose input type:", ["Text", "Upload File", "Article URL", "YouTube Video", "Image (OCR)"])
-input_text = ""
-
-# 📤 INPUT HANDLING
-if input_mode == "Text":
-    input_text = st.text_area("Paste your content here:")
-
-elif input_mode == "Upload File":
-    uploaded_file = st.file_uploader("Upload a .txt or .pdf file", type=["txt", "pdf"])
-    if uploaded_file:
-        if uploaded_file.type == "application/pdf":
-            input_text = extract_text_from_pdf(uploaded_file)
-        elif uploaded_file.type == "text/plain":
-            input_text = uploaded_file.read().decode("utf-8")
-
-elif input_mode == "Article URL":
-    url = st.text_input("Enter the article URL:")
-    if url:
-        input_text = extract_text_from_url(url)
-
-elif input_mode == "YouTube Video":
-    yt_url = st.text_input("Paste YouTube video link:")
-    if yt_url:
-        input_text = extract_transcript_from_youtube(yt_url)
-
-elif input_mode == "Image (OCR)":
-    uploaded_img = st.file_uploader("Upload image (screenshot or scanned page)", type=["jpg", "png"])
-    if uploaded_img:
-        image = Image.open(uploaded_img)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
-        input_text = pytesseract.image_to_string(image)
-        st.text_area("Extracted Text", value=input_text, height=150)
-
-# 🔍 ANALYZE BUTTON
-if st.button("🔍 Analyze"):
-    if input_text.strip() == "":
-        st.warning("Please provide valid input.")
-    else:
-        with st.spinner("Running Obsidian Engine..."):
-            summary = summarizer(input_text, max_length=80, min_length=20, do_sample=False)[0]["summary_text"]
-            sentiment = classifier(input_text[:512])[0]
-            doc = nlp(input_text)
-            entities = [(ent.text, ent.label_) for ent in doc.ents]
-            translated = translator(summary)[0]["translation_text"] if translator else "Translation model not loaded."
-
-        st.markdown("### 🧠 Summary")
-        st.info(summary)
-
-        st.markdown("### 🌍 French Translation")
-        st.info(translated)
-
-        st.markdown("### 🎭 Sentiment")
-        st.success(f"**Label:** {sentiment['label']} | **Confidence:** {round(sentiment['score'], 2)}")
-
-        st.markdown("### 🕵️ Named Entities")
-        if entities:
-            for entity, label in entities:
-                st.markdown(f"• **{entity}** — `{label}`")
+    if uploaded_file is not None:
+        st.info(f"Uploaded: {uploaded_file.name}")
+        # If audio file and whisper is available, transcribe
+        if uploaded_file.type.startswith("audio") and whisper_available:
+            st.write("Transcribing audio with Whisper...")
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_file.name)[1]) as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                tmp_path = tmp_file.name
+            model = whisper.load_model("base")
+            result = model.transcribe(tmp_path)
+            st.session_state["transcription"] = result["text"]
+            st.success("Transcription complete!")
+            st.markdown(f"**Transcription:**\n\n{st.session_state['transcription']}")
+            os.remove(tmp_path)
+        elif uploaded_file.type.startswith("audio") and not whisper_available:
+            st.warning("Whisper is not installed. To enable audio transcription, run: pip install openai-whisper")
+        # Placeholder for other file types
         else:
-            st.info("No named entities found.")
+            st.info("File preview and analysis coming soon.")
+    if analyze:
+        st.success("AI analysis results will appear here. (Integration pending)")
 
-        result_text = f"Summary:\n{summary}\n\nTranslation:\n{translated}\n\nSentiment: {sentiment['label']} ({round(sentiment['score'], 2)})\n\nEntities:\n{entities}"
-        st.markdown(generate_download_link(result_text, "obsidian_result.txt"), unsafe_allow_html=True)
+    st.markdown("---")
+    st.subheader("AI Analysis Results")
+    st.write("Results will be displayed here after analysis.")
+    if st.session_state["transcription"]:
+        st.markdown(f"**Last Transcription:**\n\n{st.session_state['transcription']}")
 
-# 📌 FOOTER
-st.markdown("---")
-st.caption("⚡ Obsidian Protocol — Advanced AI analyzer built with Streamlit, Transformers, SpaCy, OCR & NLP.")
+with tab2:
+    st.header("Live Chat with AI")
+    st.write("Chat with the AI about your uploaded files or transcriptions.")
+    chat_input = st.text_input("You:", key="chat_input")
+    if st.button("Send", key="send_btn") and chat_input:
+        # Placeholder for AI response
+        ai_response = f"[AI]: (This is a placeholder response to: '{chat_input}')"
+        st.session_state["chat_history"].append(("You", chat_input))
+        st.session_state["chat_history"].append(("AI", ai_response))
+    # Display chat history
+    for sender, message in st.session_state["chat_history"][-10:]:
+        if sender == "You":
+            st.markdown(f"**You:** {message}")
+        else:
+            st.markdown(f"<span style='color: #4F8BF9'><b>AI:</b> {message}</span>", unsafe_allow_html=True)
+    if st.session_state["transcription"]:
+        st.info(f"You can reference the last transcription in your chat.")
+
+with tab3:
+    st.header("History")
+    st.write("View your previous transcriptions and chat history.")
+    if st.session_state["transcription"]:
+        st.markdown(f"**Transcription History:**\n\n{st.session_state['transcription']}")
+    if st.session_state["chat_history"]:
+        st.markdown("**Chat History:**")
+        for sender, message in st.session_state["chat_history"]:
+            st.markdown(f"**{sender}:** {message}")
+    else:
+        st.write("No history yet.")
+
+# Footer
+st.markdown("<hr style='margin-top:2em;margin-bottom:1em'>", unsafe_allow_html=True)
+st.caption("Obsidian Protocol v2.0 | Streamlit UI | Whisper audio transcription enabled | Live chat placeholder")
