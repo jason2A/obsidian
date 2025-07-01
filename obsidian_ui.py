@@ -87,7 +87,9 @@ except ImportError:
     util = None
     cosine_similarity = None
 
-# Custom CSS for dark mode and elegant UI
+st.set_page_config(page_title="Obsidian Protocol v2.0", layout="wide")
+
+# Now you can use st.markdown, st.sidebar, etc.
 st.markdown('''
     <style>
     body, .stApp { background-color: #18191A; color: #E4E6EB; }
@@ -99,8 +101,6 @@ st.markdown('''
     .stCodeBlock { background: #242526 !important; }
     </style>
 ''', unsafe_allow_html=True)
-
-st.set_page_config(page_title="Obsidian Protocol v2.0", layout="wide")
 
 # Sidebar
 st.sidebar.title("🧠 Obsidian Protocol v2.0")
