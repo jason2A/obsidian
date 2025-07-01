@@ -430,10 +430,10 @@ SECTIONS = [
 if "active_section" not in st.session_state:
     st.session_state["active_section"] = SECTIONS[0][0]
 
-# Sidebar HTML
+# Sidebar HTML with improved styling
 sidebar_class = "glass-sidebar expanded" if st.session_state["sidebar_expanded"] else "glass-sidebar"
 sidebar_html = f'<div class="{sidebar_class}">' + \
-    '<div class="sidebar-avatar"></div>' + \
+    '<div class="sidebar-avatar" title="Profile"></div>' + \
     '<button class="sidebar-toggle" onclick="window.parent.postMessage({isStreamlitMessage: true, type: \'sidebar:toggle\'}, \'*\')">' + ("⏪" if st.session_state["sidebar_expanded"] else "⏩") + '</button>'
 for section, icon in SECTIONS:
     selected = "selected" if st.session_state["active_section"] == section else ""
@@ -510,28 +510,66 @@ def get_sentence_transformer():
         return SentenceTransformer('all-MiniLM-L6-v2')
     return None
 
-# --- NAVIGATION FIXED: Removed conflicting minimal sidebar ---
-
-# --- Central Chat Area ---
+# --- IMPROVED CHATGPT-STYLE GLASSY CHAT INTERFACE ---
+# Enhanced sidebar that works with main navigation
 st.markdown('''
     <style>
-    .chat-container {
-        margin-left: 90px;
-        margin-top: 2.5rem;
-        padding: 2.5rem 2.5rem 2.5rem 2.5rem;
+    /* Enhance existing glass-sidebar with chat-style improvements */
+    .glass-sidebar {
+        background: rgba(10, 10, 20, 0.75) !important;
+        border-right: 2px solid rgba(255,255,255,0.12);
+        box-shadow: 4px 0 32px #000A1A66;
+        backdrop-filter: blur(20px) !important;
+        transition: all 0.3s cubic-bezier(.4,2,.6,1);
+    }
+    .glass-sidebar .sidebar-avatar {
+        width: 48px; height: 48px;
+        border-radius: 50%;
+        border: 2.5px solid #FFD700;
+        background: url('https://randomuser.me/api/portraits/men/32.jpg') center/cover;
+        margin: 1rem auto 2rem auto;
+        transition: border 0.3s, box-shadow 0.3s;
+        box-shadow: 0 2px 12px #FFD70033;
+        display: block;
+    }
+    .glass-sidebar .sidebar-avatar:hover {
+        box-shadow: 0 0 0 8px #FFD70033, 0 2px 12px #FFD70033;
+        border: 2.5px solid #FFF;
+        animation: pulse 1.2s infinite;
+    }
+    .sidebar-section {
+        transition: all 0.18s cubic-bezier(.4,2,.6,1) !important;
+        border-radius: 12px !important;
+        margin: 0.5rem !important;
+        padding: 0.8rem !important;
+    }
+    .sidebar-section:hover {
+        background: rgba(255,215,0,0.15) !important;
+        transform: translateX(4px) !important;
+    }
+    .sidebar-section.selected {
+        background: rgba(255,215,0,0.25) !important;
+        border-left: 3px solid #FFD700 !important;
+    }
+    </style>
+''', unsafe_allow_html=True)
+
+# Add avatar to existing sidebar
+sidebar_avatar_html = '<div class="sidebar-avatar" title="Profile"></div>'
+
+# --- Enhanced Chat Interface for Q&A Section ---
+st.markdown('''
+    <style>
+    .enhanced-chat-container {
+        padding: 2rem;
         background: rgba(20,20,30,0.22);
         box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
         backdrop-filter: blur(32px) saturate(180%);
         -webkit-backdrop-filter: blur(32px) saturate(180%);
-        border-radius: 32px;
+        border-radius: 24px;
         border: 2px solid rgba(255,255,255,0.18);
-        min-height: 80vh;
-        max-width: 900px;
-        margin-right: auto;
-        margin-bottom: 2.5rem;
+        margin: 1rem 0;
         animation: fadein 0.8s cubic-bezier(.4,2,.6,1);
-        display: flex;
-        flex-direction: column;
         position: relative;
     }
     .chat-bubble {
@@ -708,47 +746,7 @@ st.markdown('''
     </style>
 ''', unsafe_allow_html=True)
 
-# Chat state
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
-if "chat_input" not in st.session_state:
-    st.session_state["chat_input"] = ""
-
-# Central chat container
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-
-# Show chat history
-for sender, message in st.session_state["chat_history"]:
-    bubble_class = "chat-bubble user" if sender == "user" else "chat-bubble ai"
-    st.markdown(f'<div class="{bubble_class}">{message}</div>', unsafe_allow_html=True)
-
-# Chat input row
-st.markdown('<div class="chat-input-row">', unsafe_allow_html=True)
-# Input box
-st.markdown('<input class="chat-input" id="chat_input_box" type="text" placeholder="Type a message, paste a link, or drop a file…" autocomplete="off" />', unsafe_allow_html=True)
-# Input icons (file, image, audio, mic)
-st.markdown('<div class="chat-input-icons">' +
-    '<span class="chat-input-icon" title="Upload File">📄</span>' +
-    '<span class="chat-input-icon" title="Upload Image">🖼️</span>' +
-    '<span class="chat-input-icon" title="Upload Audio">🎤</span>' +
-    '<span class="chat-input-icon" title="Voice Input">🎙️</span>' +
-    '</div>', unsafe_allow_html=True)
-# Send button
-st.markdown('<button class="chat-send-btn" id="chat_send_btn">Send</button>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Suggestions (animated chips)
-st.markdown('<div class="chat-suggestions">' +
-    '<span class="chat-suggestion">Summarize this</span>' +
-    '<span class="chat-suggestion">Translate to French</span>' +
-    '<span class="chat-suggestion">Extract entities</span>' +
-    '<span class="chat-suggestion">Visualize</span>' +
-    '</div>', unsafe_allow_html=True)
-
-# Preview area (for uploads, etc.)
-st.markdown('<div class="chat-preview">(Preview will appear here after upload or paste)</div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
+# Enhanced chat styles will be used in Q&A section only
 
 # Micro-interactions, confetti, shimmer, etc. are already in the CSS and celebrate() function
 # (Voice input, drag-and-drop, and file/image/audio handling would be implemented in the backend logic)
