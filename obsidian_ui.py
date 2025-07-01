@@ -2321,10 +2321,12 @@ st.markdown(f'''
         window.auroraWaveAdded = true;
         const aurora = document.createElement('div');
         aurora.className = 'aurora-wave';
-        for(let i=0;i<{st.session_state['aurora_density']};i++){{
+        const density = {st.session_state.get('aurora_density', 4)};
+        const speed = {st.session_state.get('bg_speed', 1.0)};
+        for(let i=0;i<density;i++){{
             const s = document.createElement('span');
-            s.style.top = (10+80*i/{st.session_state['aurora_density']})+'vh';
-            s.style.animationDuration = (10+4*i)*{1/st.session_state['bg_speed']}+'s';
+            s.style.top = (10+80*i/density)+'vh';
+            s.style.animationDuration = (10+4*i)*(1/speed)+'s';
             aurora.appendChild(s);
         }}
         document.body.appendChild(aurora);
@@ -2334,14 +2336,16 @@ st.markdown(f'''
         window.bokehBgAdded = true;
         const bokeh = document.createElement('div');
         bokeh.className = 'bokeh-bg';
-        for(let i=0;i<{st.session_state['bokeh_density']};i++){{
+        const bokehDensity = {st.session_state.get('bokeh_density', 12)};
+        const speed = {st.session_state.get('bg_speed', 1.0)};
+        for(let i=0;i<bokehDensity;i++){{
             const s = document.createElement('span');
             s.style.left = (Math.random()*100)+'vw';
             s.style.bottom = (-10-Math.random()*20)+'vh';
             s.style.width = (32+Math.random()*48)+'px';
             s.style.height = s.style.width;
             s.style.animationDelay = (Math.random()*12)+'s';
-            s.style.animationDuration = (18*{1/st.session_state['bg_speed']})+'s';
+            s.style.animationDuration = (18*(1/speed))+'s';
             bokeh.appendChild(s);
         }}
         document.body.appendChild(bokeh);
