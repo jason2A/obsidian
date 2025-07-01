@@ -650,11 +650,38 @@ st.markdown('''
         color: #232946;
         box-shadow: 0 2px 16px #FFD70033;
         outline: none;
-        transition: border 0.22s cubic-bezier(.4,2,.6,1), box-shadow 0.22s cubic-bezier(.4,2,.6,1);
+        transition: border 0.22s cubic-bezier(.4,2,.6,1), box-shadow 0.22s cubic-bezier(.4,2,.6,1), background 0.22s cubic-bezier(.4,2,.6,1), transform 0.18s cubic-bezier(.4,2,.6,1);
+        will-change: border, box-shadow, background, transform;
+        position: relative;
+        z-index: 2;
     }
     .chat-input:focus {
         border: 2.5px solid #0057B8;
-        box-shadow: 0 0 0 6px #0057B822;
+        box-shadow: 0 0 0 8px #0057B822;
+        background: rgba(255,255,255,0.9);
+        animation: inputpulse 0.7s;
+    }
+    @keyframes inputpulse {
+        0% { box-shadow: 0 0 0 0 #FFD70044; }
+        100% { box-shadow: 0 0 0 8px #0057B822; }
+    }
+    .chat-input.typing {
+        animation: typingpulse 0.18s;
+    }
+    @keyframes typingpulse {
+        0% { background: rgba(255,255,255,0.7); }
+        100% { background: rgba(255,255,255,0.9); }
+    }
+    .chat-input-sparkle {
+        position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+        font-size: 1.3rem; color: #FFD700; opacity: 0.7;
+        pointer-events: none;
+        animation: sparklepop 0.5s;
+    }
+    @keyframes sparklepop {
+        0% { opacity: 0; transform: scale(0.7) translateY(-50%); }
+        50% { opacity: 1; transform: scale(1.2) translateY(-50%); }
+        100% { opacity: 0; transform: scale(0.7) translateY(-50%); }
     }
     .chat-send-btn {
         font-size: 1.3rem;
@@ -1598,3 +1625,760 @@ st.markdown("<hr style='margin-top:2em;margin-bottom:1em'>", unsafe_allow_html=T
 st.caption("Obsidian Protocol v2.0 | World-Changing Streamlit UI | All media types & AI tools | Free forever | by AI")
 
 st.markdown('</div>', unsafe_allow_html=True)
+
+# --- LEGACY VAULT & AWE-INSPIRING CENTERPIECE ---
+if ("Legacy Vault", "🏛️") not in SECTIONS:
+    SECTIONS.append(("Legacy Vault", "🏛️"))
+
+if "hall_of_fame" not in st.session_state:
+    st.session_state["hall_of_fame"] = []
+
+# Cinematic intro animation for first-time users
+if "cinematic_intro" not in st.session_state:
+    st.session_state["cinematic_intro"] = False
+if not st.session_state["cinematic_intro"]:
+    st.markdown('''
+        <style>
+        .cinematic-intro {
+            position: fixed; top:0; left:0; width:100vw; height:100vh; z-index:99999;
+            background: linear-gradient(120deg, #1a1f2b 0%, #232946 50%, #2e3a59 100%);
+            display: flex; align-items: center; justify-content: center;
+            animation: fadein 1.2s cubic-bezier(.4,2,.6,1);
+        }
+        .cinematic-title {
+            font-size: 2.8rem; font-weight: 900; color: #FFD700;
+            text-shadow: 0 4px 32px #0057B8, 0 2px 8px #FFD70044;
+            letter-spacing: 0.08em;
+            animation: cinematicglow 2.5s infinite alternate;
+        }
+        @keyframes cinematicglow {
+            0% { text-shadow: 0 4px 32px #0057B8, 0 2px 8px #FFD70044; }
+            100% { text-shadow: 0 8px 48px #FFD700, 0 2px 16px #0057B8; }
+        }
+        </style>
+        <div class="cinematic-intro"><div class="cinematic-title">Obsidian Protocol<br>Legacy & Future</div></div>
+        <script>setTimeout(()=>{window.parent.postMessage({isStreamlitMessage:true,type:'cinematic_intro_done'},'*');}, 3200);</script>
+    ''', unsafe_allow_html=True)
+    st.session_state["cinematic_intro"] = True
+
+# Legacy Vault section
+if st.session_state["active_section"] == "Legacy Vault":
+    with glass_card():
+        st.markdown('''
+            <style>
+            .legacy-timeline {
+                display: flex; flex-direction: column; gap: 2.5rem; margin-top: 1.5rem; margin-bottom: 1.5rem; position: relative;
+            }
+            .legacy-era {
+                display: flex; align-items: flex-start; gap: 2.2rem;
+                background: rgba(255,255,255,0.18); border-radius: 22px;
+                box-shadow: 0 2px 16px #0057B822; padding: 1.5rem 2rem;
+                animation: fadein 0.7s cubic-bezier(.4,2,.6,1);
+                position: relative; border-left: 6px solid #FFD700;
+                transition: background 0.3s, box-shadow 0.3s, transform 0.3s;
+            }
+            .legacy-era:hover {
+                background: rgba(0,87,184,0.18); box-shadow: 0 4px 32px #FFD70044; transform: scale(1.02);
+            }
+            .legacy-mockup {
+                min-width: 100px; max-width: 100px; min-height: 100px; max-height: 100px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 3.2rem; background: rgba(0,87,184,0.13);
+                border-radius: 22px; box-shadow: 0 2px 8px #FFD70022; margin-right: 1.2rem;
+                position: relative; overflow: hidden;
+            }
+            .legacy-mockup .parallax {
+                position: absolute; width: 100%; height: 100%; pointer-events: none;
+                background: radial-gradient(circle at 30% 40%, #FFD70033 0%, transparent 80%),
+                            radial-gradient(circle at 70% 60%, #0057B822 0%, transparent 80%);
+                animation: parallaxmove 4s infinite alternate;
+            }
+            @keyframes parallaxmove {
+                0% { background-position: 0% 0%, 100% 100%; }
+                100% { background-position: 100% 100%, 0% 0%; }
+            }
+            .legacy-content { flex: 1; }
+            .legacy-title { font-size: 1.35rem; font-weight: 700; color: #FFD700; margin-bottom: 0.3rem; }
+            .legacy-date { font-size: 1.01rem; color: #b3d4fc; margin-bottom: 0.7rem; }
+            .legacy-features { font-size: 1.05rem; color: #0057B8; margin-bottom: 0.5rem; }
+            .legacy-badge { display: inline-block; background: linear-gradient(90deg, #FFD700 0%, #0057B8 100%); color: #232946; font-size: 0.98rem; font-weight: 600; border-radius: 8px; padding: 0.2rem 0.8rem; margin-right: 0.5rem; margin-bottom: 0.2rem; box-shadow: 0 2px 8px #FFD70022; }
+            .legacy-signature { background: rgba(255,255,255,0.13); border-radius: 12px; padding: 0.7rem 1.2rem; color: #0057B8; font-size: 1.01rem; margin-top: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 2px 8px #FFD70022; }
+            .legacy-hof { margin-top: 2.5rem; background: rgba(0,87,184,0.13); border-radius: 18px; padding: 1.2rem 2rem; box-shadow: 0 2px 8px #FFD70022; }
+            </style>
+        ''', unsafe_allow_html=True)
+        st.markdown('<div class="legacy-timeline">', unsafe_allow_html=True)
+        legacy_eras = [
+            {"title": "v1.0 – Classic Dashboard", "date": "Spring 2024", "mockup": "🗂️", "desc": "The original: simple, white, with tabs.", "features": ["Text/PDF/URL input", "Summary", "Sentiment", "NER"], "badges": ["First Release"]},
+            {"title": "v2.0 – Glassmorphic Revolution", "date": "Summer 2024", "mockup": "🪟", "desc": "Major redesign: glass cards, blue/gold palette, micro-interactions.", "features": ["Image/audio input", "TTS", "Translation", "Batch", "Knowledge Graph"], "badges": ["Glassmorphic", "Luxury"]},
+            {"title": "v3.0 – ChatGPT Mode", "date": "Summer 2024", "mockup": "💬", "desc": "Conversational, ChatGPT-style interface. Drag-and-drop, voice, AI suggestions.", "features": ["Central chat", "Live preview", "Animated suggestions", "Confetti"], "badges": ["Conversational", "Next-Gen"]},
+            {"title": "v4.0 – The Living App", "date": "Future", "mockup": "🧬", "desc": "Live collaboration, evolution timeline, AI personas, and more.", "features": ["Collaboration", "Personas", "Achievements", "Animated timeline"], "badges": ["Living App", "Legendary"]}
+        ]
+        for era in legacy_eras:
+            st.markdown(f'''<div class="legacy-era">
+                <div class="legacy-mockup">{era['mockup']}<div class="parallax"></div></div>
+                <div class="legacy-content">
+                    <div class="legacy-title">{era['title']}</div>
+                    <div class="legacy-date">{era['date']}</div>
+                    <div class="legacy-features">{era['desc']}</div>
+                    {''.join([f'<span class="legacy-badge">{b}</span>' for b in era['badges']])}
+                    <ul style="margin:0.5rem 0 0.5rem 1.2rem; color:#0057B8;">
+                        {''.join([f'<li>{f}</li>' for f in era['features']])}
+                    </ul>
+                    {''.join([f'<div class="legacy-signature">📝 {s}</div>' for s in st.session_state["hall_of_fame"] if s.get("era") == era["title"]])}
+                </div>
+            </div>''', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        # User signature
+        st.markdown("**Sign the Vault:**")
+        signature_text = st.text_input("Leave your name or message for the Hall of Fame:")
+        selected_era = st.selectbox("Which era do you want to sign?", [era["title"] for era in legacy_eras])
+        if st.button("Sign Vault") and signature_text:
+            st.session_state["hall_of_fame"].append({"era": selected_era, "text": signature_text})
+            st.success("Signature added! Refresh to see it in the Vault.")
+
+# --- UPGRADED CENTERPIECE: 3D GLASS, PARALLAX, LIVING BACKGROUND ---
+st.markdown('''
+    <style>
+    .centerpiece-glass {
+        margin-left: 90px; margin-top: 2.5rem; margin-bottom: 2.5rem;
+        padding: 3.5rem 3rem 3rem 3rem;
+        background: linear-gradient(120deg, #1a1f2b 0%, #232946 50%, #2e3a59 100%);
+        border-radius: 48px;
+        box-shadow: 0 16px 64px 0 #0057B844, 0 2px 16px #FFD70033;
+        border: 3px solid rgba(255,255,255,0.22);
+        min-height: 420px; max-width: 900px;
+        margin-right: auto;
+        position: relative;
+        overflow: hidden;
+        animation: fadein 1.2s cubic-bezier(.4,2,.6,1);
+        perspective: 1200px;
+        transition: box-shadow 0.22s, background 0.5s, transform 0.22s cubic-bezier(.4,2,.6,1);
+    }
+    .centerpiece-glass .glass-inner {
+        background: rgba(255,255,255,0.18);
+        border-radius: 40px;
+        box-shadow: 0 8px 32px 0 #0057B822, 0 2px 8px #FFD70022;
+        padding: 2.5rem 2rem 2rem 2rem;
+        min-height: 320px;
+        transition: box-shadow 0.22s cubic-bezier(.4,2,.6,1), background 0.5s, transform 0.22s cubic-bezier(.4,2,.6,1);
+        will-change: box-shadow, background, transform, opacity;
+        position: relative;
+        animation: glassbreath 2.5s infinite alternate;
+    }
+    @keyframes glassbreath {
+        0% { box-shadow: 0 8px 32px 0 #0057B822, 0 2px 8px #FFD70022; transform: scale(1) rotateY(0deg); }
+        100% { box-shadow: 0 16px 64px 0 #FFD70044, 0 4px 16px #0057B844; transform: scale(1.015) rotateY(2deg); }
+    }
+    .centerpiece-glass .living-bg {
+        position: absolute; top:0; left:0; width:100%; height:100%; z-index:0;
+        pointer-events: none;
+        background: radial-gradient(circle at 20% 40%, #00c3ff33 0%, #0057b822 60%, transparent 100%),
+                    radial-gradient(circle at 80% 60%, #ffd70033 0%, #ffb30022 60%, transparent 100%);
+        animation: livingbgmove 12s ease-in-out infinite alternate;
+        opacity: 0.7;
+    }
+    @keyframes livingbgmove {
+        0% { background-position: 0% 0%, 100% 100%; }
+        100% { background-position: 100% 100%, 0% 0%; }
+    }
+    .centerpiece-glass .light-reflection {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(120deg, #fff3 0%, #fff0 100%);
+        opacity: 0.18;
+        pointer-events: none;
+        mix-blend-mode: screen;
+        animation: reflectionmove 6s infinite alternate;
+    }
+    @keyframes reflectionmove {
+        0% { opacity: 0.12; }
+        100% { opacity: 0.22; }
+    }
+    </style>
+''', unsafe_allow_html=True)
+
+# Only show centerpiece on main/chat section (not Journey/Legacy Vault)
+if st.session_state["active_section"] not in ["Journey", "Legacy Vault"]:
+    st.markdown('<div class="centerpiece-glass" id="centerpiece">', unsafe_allow_html=True)
+    st.markdown('<div class="living-bg"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="light-reflection"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-inner">', unsafe_allow_html=True)
+    # (Insert your chat/search input and results here)
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- EMOTIONAL, JOYFUL, 3D TYPING EXPERIENCE ---
+st.markdown('''
+    <style>
+    .centerpiece-glass {
+        margin-left: 90px; margin-top: 2.5rem; margin-bottom: 2.5rem;
+        padding: 3.5rem 3rem 3rem 3rem;
+        background: linear-gradient(120deg, #1a1f2b 0%, #232946 50%, #2e3a59 100%);
+        border-radius: 48px;
+        box-shadow: 0 16px 64px 0 #0057B844, 0 2px 16px #FFD70033;
+        border: 3px solid rgba(255,255,255,0.22);
+        min-height: 420px; max-width: 900px;
+        margin-right: auto;
+        position: relative;
+        overflow: hidden;
+        animation: fadein 1.2s cubic-bezier(.4,2,.6,1);
+        perspective: 1200px;
+        transition: box-shadow 0.22s, background 0.5s, transform 0.22s cubic-bezier(.4,2,.6,1);
+    }
+    .centerpiece-glass .glass-inner {
+        background: rgba(255,255,255,0.18);
+        border-radius: 40px;
+        box-shadow: 0 8px 32px 0 #0057B822, 0 2px 8px #FFD70022;
+        padding: 2.5rem 2rem 2rem 2rem;
+        min-height: 320px;
+        transition: box-shadow 0.22s cubic-bezier(.4,2,.6,1), background 0.5s, transform 0.22s cubic-bezier(.4,2,.6,1);
+        will-change: box-shadow, background, transform, opacity;
+        position: relative;
+        animation: glassbreath 2.5s infinite alternate;
+    }
+    @keyframes glassbreath {
+        0% { box-shadow: 0 8px 32px 0 #0057B822, 0 2px 8px #FFD70022; transform: scale(1) rotateY(0deg); }
+        100% { box-shadow: 0 16px 64px 0 #FFD70044, 0 4px 16px #0057B844; transform: scale(1.015) rotateY(2deg); }
+    }
+    .centerpiece-glass .living-bg {
+        position: absolute; top:0; left:0; width:100%; height:100%; z-index:0;
+        pointer-events: none;
+        background: radial-gradient(circle at 20% 40%, #00c3ff33 0%, #0057b822 60%, transparent 100%),
+                    radial-gradient(circle at 80% 60%, #ffd70033 0%, #ffb30022 60%, transparent 100%);
+        animation: livingbgmove 12s ease-in-out infinite alternate;
+        opacity: 0.7;
+    }
+    @keyframes livingbgmove {
+        0% { background-position: 0% 0%, 100% 100%; }
+        100% { background-position: 100% 100%, 0% 0%; }
+    }
+    .centerpiece-glass .light-reflection {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(120deg, #fff3 0%, #fff0 100%);
+        opacity: 0.18;
+        pointer-events: none;
+        mix-blend-mode: screen;
+        animation: reflectionmove 6s infinite alternate;
+    }
+    @keyframes reflectionmove {
+        0% { opacity: 0.12; }
+        100% { opacity: 0.22; }
+    }
+    .chat-input {
+        flex: 1;
+        font-size: 1.18rem;
+        padding: 1.1rem 1.5rem;
+        border-radius: 18px;
+        border: 2.5px solid #FFD700;
+        background: rgba(255,255,255,0.7);
+        color: #232946;
+        box-shadow: 0 2px 16px #FFD70033;
+        outline: none;
+        transition: border 0.22s cubic-bezier(.4,2,.6,1), box-shadow 0.22s cubic-bezier(.4,2,.6,1), background 0.22s cubic-bezier(.4,2,.6,1), transform 0.18s cubic-bezier(.4,2,.6,1);
+        will-change: border, box-shadow, background, transform;
+        position: relative;
+        z-index: 2;
+    }
+    .chat-input:focus {
+        border: 2.5px solid #0057B8;
+        box-shadow: 0 0 0 8px #0057B822;
+        background: rgba(255,255,255,0.9);
+        animation: inputpulse 0.7s;
+    }
+    @keyframes inputpulse {
+        0% { box-shadow: 0 0 0 0 #FFD70044; }
+        100% { box-shadow: 0 0 0 8px #0057B822; }
+    }
+    .chat-input.typing {
+        animation: typingpulse 0.18s;
+    }
+    @keyframes typingpulse {
+        0% { background: rgba(255,255,255,0.7); }
+        100% { background: rgba(255,255,255,0.9); }
+    }
+    .chat-input-sparkle {
+        position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+        font-size: 1.3rem; color: #FFD700; opacity: 0.7;
+        pointer-events: none;
+        animation: sparklepop 0.5s;
+    }
+    @keyframes sparklepop {
+        0% { opacity: 0; transform: scale(0.7) translateY(-50%); }
+        50% { opacity: 1; transform: scale(1.2) translateY(-50%); }
+        100% { opacity: 0; transform: scale(0.7) translateY(-50%); }
+    }
+    .chat-send-btn:active {
+        animation: sendwave 0.4s;
+    }
+    @keyframes sendwave {
+        0% { box-shadow: 0 2px 16px #FFD70077; }
+        50% { box-shadow: 0 8px 32px #FFD70077; }
+        100% { box-shadow: 0 2px 16px #FFD70077; }
+    }
+    .positive-feedback {
+        font-size: 1.12rem; color: #FFD700; margin-top: 0.7rem; text-align: center;
+        animation: fadein 0.7s cubic-bezier(.4,2,.6,1);
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        text-shadow: 0 2px 8px #0057B822;
+    }
+    </style>
+''', unsafe_allow_html=True)
+
+# (JS for 3D parallax and input sparkle would be added in a full web app; Streamlit is limited, but CSS/HTML is in place)
+
+# Example: Show positive feedback after send
+if "show_positive_feedback" not in st.session_state:
+    st.session_state["show_positive_feedback"] = False
+if st.session_state["show_positive_feedback"]:
+    st.markdown('<div class="positive-feedback">Great thought! ✨</div>', unsafe_allow_html=True)
+    st.session_state["show_positive_feedback"] = False
+
+# --- ULTIMATE EMOTIONAL, 3D, INTERACTIVE TYPING EXPERIENCE ---
+
+# Add toggle in settings for effects
+if "effects_enabled" not in st.session_state:
+    st.session_state["effects_enabled"] = True
+if st.session_state["active_section"] == "Settings":
+    st.markdown("**Personalization & Effects**")
+    st.session_state["effects_enabled"] = st.checkbox("Enable 3D, emoji, and sound effects (recommended)", value=st.session_state["effects_enabled"])
+
+# Only apply effects if enabled
+if st.session_state.get("effects_enabled", True):
+    st.markdown('''
+        <style>
+        .centerpiece-glass {
+            transition: box-shadow 0.22s, background 0.5s, transform 0.22s cubic-bezier(.4,2,.6,1);
+        }
+        </style>
+        <script>
+        // 3D parallax/tilt effect
+        const card = window.parent.document.getElementById('centerpiece');
+        if(card){
+            card.onmousemove = function(e){
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const cx = rect.width/2, cy = rect.height/2;
+                const dx = (x-cx)/cx, dy = (y-cy)/cy;
+                card.style.transform = `rotateY(${-dx*8}deg) rotateX(${dy*8}deg) scale(1.01)`;
+            };
+            card.onmouseleave = function(){
+                card.style.transform = '';
+            };
+        }
+        // Emoji confetti on typing/send
+        window.emojiConfetti = function(){
+            const input = window.parent.document.querySelector('.chat-input');
+            if(!input) return;
+            for(let i=0;i<6;i++){
+                const emoji = document.createElement('span');
+                emoji.innerText = ['✨','🎉','😊','🥳','💙','⭐'][Math.floor(Math.random()*6)];
+                emoji.style.position = 'absolute';
+                emoji.style.left = (50+Math.random()*30-15)+'%';
+                emoji.style.top = (60+Math.random()*10-5)+'%';
+                emoji.style.fontSize = (1.2+Math.random()*0.8)+'rem';
+                emoji.style.opacity = 1;
+                emoji.style.transition = 'all 1.2s cubic-bezier(.4,2,.6,1)';
+                emoji.style.pointerEvents = 'none';
+                input.parentElement.appendChild(emoji);
+                setTimeout(()=>{
+                    emoji.style.transform = `translateY(-60px) scale(${1.2+Math.random()*0.5})`;
+                    emoji.style.opacity = 0;
+                }, 10);
+                setTimeout(()=>{emoji.remove();}, 1200);
+            }
+        };
+        // Sound cue on send
+        window.playSendSound = function(){
+            const ctx = new (window.AudioContext||window.webkitAudioContext)();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'triangle';
+            o.frequency.value = 660;
+            g.gain.value = 0.08;
+            o.connect(g); g.connect(ctx.destination);
+            o.start();
+            o.frequency.linearRampToValueAtTime(880, ctx.currentTime+0.18);
+            g.gain.linearRampToValueAtTime(0, ctx.currentTime+0.22);
+            o.stop(ctx.currentTime+0.22);
+        };
+        </script>
+    ''', unsafe_allow_html=True)
+
+# Example: On send, trigger emoji confetti, sound, and positive feedback
+if "show_positive_feedback" not in st.session_state:
+    st.session_state["show_positive_feedback"] = False
+if st.session_state["show_positive_feedback"]:
+    st.markdown('<div class="positive-feedback">Great thought! ✨</div>', unsafe_allow_html=True)
+    st.session_state["show_positive_feedback"] = False
+    st.markdown('''<script>window.emojiConfetti();window.playSendSound();</script>''', unsafe_allow_html=True)
+
+# --- RARE SUPER REACTIONS, ANIMATED BACKGROUNDS, MORE SOUNDS ---
+
+if "message_count" not in st.session_state:
+    st.session_state["message_count"] = 0
+
+# Add more sound options and rare super reactions
+if st.session_state.get("effects_enabled", True):
+    st.markdown('''
+        <script>
+        // Golden confetti super reaction
+        window.superConfetti = function(){
+            const input = window.parent.document.querySelector('.chat-input');
+            if(!input) return;
+            for(let i=0;i<18;i++){
+                const emoji = document.createElement('span');
+                emoji.innerText = ['✨','🎉','⭐','💛','🥇','🏆'][Math.floor(Math.random()*6)];
+                emoji.style.position = 'absolute';
+                emoji.style.left = (30+Math.random()*40)+'%';
+                emoji.style.top = (60+Math.random()*10-5)+'%';
+                emoji.style.fontSize = (1.5+Math.random()*1.2)+'rem';
+                emoji.style.opacity = 1;
+                emoji.style.transition = 'all 1.8s cubic-bezier(.4,2,.6,1)';
+                emoji.style.pointerEvents = 'none';
+                input.parentElement.appendChild(emoji);
+                setTimeout(()=>{
+                    emoji.style.transform = `translateY(-120px) scale(${1.5+Math.random()*0.7}) rotate(${Math.random()*360}deg)`;
+                    emoji.style.opacity = 0;
+                }, 10);
+                setTimeout(()=>{emoji.remove();}, 1800);
+            }
+        };
+        // Gentle chime for positive feedback
+        window.playChime = function(){
+            const ctx = new (window.AudioContext||window.webkitAudioContext)();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.value = 880;
+            g.gain.value = 0.09;
+            o.connect(g); g.connect(ctx.destination);
+            o.start();
+            o.frequency.linearRampToValueAtTime(1320, ctx.currentTime+0.22);
+            g.gain.linearRampToValueAtTime(0, ctx.currentTime+0.32);
+            o.stop(ctx.currentTime+0.32);
+        };
+        // Rare celebration sound
+        window.playCelebration = function(){
+            const ctx = new (window.AudioContext||window.webkitAudioContext)();
+            const o1 = ctx.createOscillator();
+            const o2 = ctx.createOscillator();
+            const g = ctx.createGain();
+            o1.type = 'triangle'; o2.type = 'sine';
+            o1.frequency.value = 660; o2.frequency.value = 990;
+            g.gain.value = 0.12;
+            o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+            o1.start(); o2.start();
+            o1.frequency.linearRampToValueAtTime(1320, ctx.currentTime+0.32);
+            o2.frequency.linearRampToValueAtTime(1760, ctx.currentTime+0.32);
+            g.gain.linearRampToValueAtTime(0, ctx.currentTime+0.38);
+            o1.stop(ctx.currentTime+0.38); o2.stop(ctx.currentTime+0.38);
+        };
+        // Animated background pulse
+        window.bgPulse = function(){
+            const bg = window.parent.document.querySelector('.living-bg');
+            if(bg){
+                bg.style.transition = 'filter 0.7s cubic-bezier(.4,2,.6,1)';
+                bg.style.filter = 'brightness(1.3) blur(8px)';
+                setTimeout(()=>{bg.style.filter='';}, 700);
+            }
+        };
+        </script>
+    ''', unsafe_allow_html=True)
+
+# Example: On send, trigger super reaction every 10th message
+if "show_positive_feedback" not in st.session_state:
+    st.session_state["show_positive_feedback"] = False
+if st.session_state["show_positive_feedback"]:
+    st.session_state["message_count"] += 1
+    if st.session_state["message_count"] % 10 == 0:
+        st.markdown('<div class="positive-feedback">Legendary! You hit a milestone! 🏆</div>', unsafe_allow_html=True)
+        st.markdown('''<script>window.superConfetti();window.playCelebration();window.bgPulse();</script>''', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="positive-feedback">Great thought! ✨</div>', unsafe_allow_html=True)
+        st.markdown('''<script>window.emojiConfetti();window.playChime();window.bgPulse();</script>''', unsafe_allow_html=True)
+    st.session_state["show_positive_feedback"] = False
+
+# --- ENHANCED ANIMATIONS: CHAT, BUTTONS, SIDEBAR, BACKGROUND ---
+st.markdown('''
+    <style>
+    /* Animate chat bubbles */
+    .chat-bubble {
+        animation: chatbubblein 0.7s cubic-bezier(.4,2,.6,1);
+        transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+    }
+    @keyframes chatbubblein {
+        0% { opacity: 0; transform: translateY(24px) scale(0.96); }
+        60% { opacity: 1; transform: translateY(-6px) scale(1.04); }
+        100% { opacity: 1; transform: none; }
+    }
+    .chat-bubble.user {
+        animation-delay: 0.1s;
+    }
+    .chat-bubble.ai {
+        animation-delay: 0.2s;
+    }
+    /* Animate send button */
+    .chat-send-btn {
+        animation: sendpulsein 0.7s cubic-bezier(.4,2,.6,1);
+    }
+    @keyframes sendpulsein {
+        0% { opacity: 0; transform: scale(0.8); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    .chat-send-btn:hover {
+        box-shadow: 0 0 16px #FFD70088, 0 2px 16px #0057B855;
+        animation: sendpulse 1.2s infinite alternate;
+    }
+    @keyframes sendpulse {
+        0% { box-shadow: 0 0 16px #FFD70088, 0 2px 16px #0057B855; }
+        100% { box-shadow: 0 0 32px #FFD700cc, 0 4px 32px #0057B8cc; }
+    }
+    .chat-send-btn:active {
+        animation: sendbounce 0.3s;
+    }
+    @keyframes sendbounce {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.12) translateY(-4px); }
+        100% { transform: scale(1); }
+    }
+    /* Sidebar avatar/profile pulse and glow */
+    .sidebar-avatar {
+        transition: box-shadow 0.3s, border 0.3s;
+    }
+    .sidebar-avatar:hover {
+        box-shadow: 0 0 0 12px #FFD70044, 0 2px 12px #FFD70033;
+        border: 2.5px solid #FFF;
+        animation: avatarpulse 1.5s infinite alternate;
+    }
+    @keyframes avatarpulse {
+        0% { box-shadow: 0 0 0 8px #FFD70033, 0 2px 12px #FFD70033; }
+        100% { box-shadow: 0 0 0 16px #FFD70066, 0 4px 24px #FFD70066; }
+    }
+    /* Floating animated sparkles/particles in background */
+    .magic-sparkle {
+        position: fixed; pointer-events: none; z-index: 1;
+        width: 100vw; height: 100vh; left: 0; top: 0;
+        overflow: hidden;
+    }
+    .magic-sparkle span {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.7;
+        pointer-events: none;
+        animation: sparklefloat 6s linear infinite;
+        background: linear-gradient(135deg, #FFD700 0%, #0057B8 100%);
+    }
+    @keyframes sparklefloat {
+        0% { transform: translateY(0) scale(0.7); opacity: 0.7; }
+        60% { opacity: 1; }
+        100% { transform: translateY(-120vh) scale(1.2); opacity: 0; }
+    }
+    </style>
+    <script>
+    // Add floating sparkles/particles
+    if(!window.magicSparkleAdded){
+        window.magicSparkleAdded = true;
+        const sparkleLayer = document.createElement('div');
+        sparkleLayer.className = 'magic-sparkle';
+        for(let i=0;i<18;i++){
+            const s = document.createElement('span');
+            s.style.left = (Math.random()*100)+'vw';
+            s.style.bottom = (-10-Math.random()*20)+'vh';
+            s.style.width = (8+Math.random()*16)+'px';
+            s.style.height = s.style.width;
+            s.style.animationDelay = (Math.random()*6)+'s';
+            sparkleLayer.appendChild(s);
+        }
+        document.body.appendChild(sparkleLayer);
+    }
+    </script>
+''', unsafe_allow_html=True)
+
+# --- ENHANCED MAGICAL BACKGROUND EFFECTS (NO AVATARS) ---
+st.markdown('''
+    <style>
+    /* Animated floating lines (aurora waves) */
+    .aurora-wave {
+        position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    .aurora-wave span {
+        position: absolute;
+        width: 120vw; height: 32px;
+        left: -10vw;
+        border-radius: 32px;
+        opacity: 0.18;
+        background: linear-gradient(90deg, #0057B8 0%, #FFD700 100%);
+        filter: blur(12px);
+        animation: auroramove 12s linear infinite;
+    }
+    .aurora-wave span:nth-child(2) {
+        top: 30vh; animation-delay: 2s; opacity: 0.13; filter: blur(18px); }
+    .aurora-wave span:nth-child(3) {
+        top: 60vh; animation-delay: 4s; opacity: 0.11; filter: blur(22px); }
+    .aurora-wave span:nth-child(4) {
+        top: 80vh; animation-delay: 6s; opacity: 0.09; filter: blur(28px); }
+    @keyframes auroramove {
+        0% { left: -10vw; }
+        100% { left: 10vw; }
+    }
+    /* Bokeh circles */
+    .bokeh-bg {
+        position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    .bokeh-bg span {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.13;
+        background: linear-gradient(135deg, #FFD700 0%, #0057B8 100%);
+        filter: blur(8px);
+        animation: bokehfloat 18s linear infinite;
+    }
+    @keyframes bokehfloat {
+        0% { transform: translateY(0) scale(0.7); opacity: 0.13; }
+        60% { opacity: 0.18; }
+        100% { transform: translateY(-120vh) scale(1.2); opacity: 0; }
+    }
+    </style>
+    <script>
+    // Add aurora waves
+    if(!window.auroraWaveAdded){
+        window.auroraWaveAdded = true;
+        const aurora = document.createElement('div');
+        aurora.className = 'aurora-wave';
+        for(let i=0;i<4;i++){
+            const s = document.createElement('span');
+            s.style.top = (10+20*i)+'vh';
+            s.style.animationDuration = (10+4*i)+'s';
+            aurora.appendChild(s);
+        }
+        document.body.appendChild(aurora);
+    }
+    // Add bokeh circles
+    if(!window.bokehBgAdded){
+        window.bokehBgAdded = true;
+        const bokeh = document.createElement('div');
+        bokeh.className = 'bokeh-bg';
+        for(let i=0;i<12;i++){
+            const s = document.createElement('span');
+            s.style.left = (Math.random()*100)+'vw';
+            s.style.bottom = (-10-Math.random()*20)+'vh';
+            s.style.width = (32+Math.random()*48)+'px';
+            s.style.height = s.style.width;
+            s.style.animationDelay = (Math.random()*12)+'s';
+            bokeh.appendChild(s);
+        }
+        document.body.appendChild(bokeh);
+    }
+    </script>
+''', unsafe_allow_html=True)
+
+# --- INTERACTIVE BACKGROUND: RIPPLE, WAVES, TUNABLE DENSITY/SPEED ---
+
+# Add settings controls for density and speed
+if "aurora_density" not in st.session_state:
+    st.session_state["aurora_density"] = 4
+if "bokeh_density" not in st.session_state:
+    st.session_state["bokeh_density"] = 12
+if "bg_speed" not in st.session_state:
+    st.session_state["bg_speed"] = 1.0
+if st.session_state["active_section"] == "Settings":
+    st.markdown("**Background Effects**")
+    st.session_state["aurora_density"] = st.slider("Aurora Wave Density", 1, 10, st.session_state["aurora_density"])
+    st.session_state["bokeh_density"] = st.slider("Bokeh Circle Density", 2, 24, st.session_state["bokeh_density"])
+    st.session_state["bg_speed"] = st.slider("Background Animation Speed", 0.5, 2.0, st.session_state["bg_speed"], step=0.05)
+
+# Interactive background JS/CSS
+st.markdown(f'''
+    <style>
+    .ripple-bg {{ position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }}
+    .ripple-bg span {{ position: absolute; border-radius: 50%; opacity: 0.22; background: radial-gradient(circle, #0057B8 0%, #FFD700 80%, transparent 100%); pointer-events: none; animation: ripplescale 1.2s cubic-bezier(.4,2,.6,1); }}
+    @keyframes ripplescale {{
+        0% {{ transform: scale(0.2); opacity: 0.5; }}
+        60% {{ opacity: 0.22; }}
+        100% {{ transform: scale(2.2); opacity: 0; }}
+    }}
+    .cursor-wave {{ position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }}
+    .cursor-wave span {{ position: absolute; width: 48px; height: 48px; border-radius: 50%; opacity: 0.13; background: linear-gradient(135deg, #FFD700 0%, #0057B8 100%); filter: blur(8px); pointer-events: none; animation: wavefade 1.2s linear; }}
+    @keyframes wavefade {{ 0% {{ opacity: 0.13; }} 100% {{ opacity: 0; }} }}
+    </style>
+    <script>
+    // Remove old aurora/bokeh if present
+    if(window.auroraWaveAdded){{
+        document.querySelectorAll('.aurora-wave').forEach(e=>e.remove());
+        window.auroraWaveAdded = false;
+    }}
+    if(window.bokehBgAdded){{
+        document.querySelectorAll('.bokeh-bg').forEach(e=>e.remove());
+        window.bokehBgAdded = false;
+    }}
+    // Add aurora waves
+    if(!window.auroraWaveAdded){{
+        window.auroraWaveAdded = true;
+        const aurora = document.createElement('div');
+        aurora.className = 'aurora-wave';
+        for(let i=0;i<{st.session_state['aurora_density']};i++){{
+            const s = document.createElement('span');
+            s.style.top = (10+80*i/{st.session_state['aurora_density']})+'vh';
+            s.style.animationDuration = ({10+4*i}*{1/st.session_state['bg_speed']})+'s';
+            aurora.appendChild(s);
+        }}
+        document.body.appendChild(aurora);
+    }}
+    // Add bokeh circles
+    if(!window.bokehBgAdded){{
+        window.bokehBgAdded = true;
+        const bokeh = document.createElement('div');
+        bokeh.className = 'bokeh-bg';
+        for(let i=0;i<{st.session_state['bokeh_density']};i++){{
+            const s = document.createElement('span');
+            s.style.left = (Math.random()*100)+'vw';
+            s.style.bottom = (-10-Math.random()*20)+'vh';
+            s.style.width = (32+Math.random()*48)+'px';
+            s.style.height = s.style.width;
+            s.style.animationDelay = (Math.random()*12)+'s';
+            s.style.animationDuration = (18*{1/st.session_state['bg_speed']})+'s';
+            bokeh.appendChild(s);
+        }}
+        document.body.appendChild(bokeh);
+    }}
+    // Add ripple effect on click
+    if(!window.rippleBgAdded){{
+        window.rippleBgAdded = true;
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple-bg';
+        document.body.appendChild(ripple);
+        window.parent.document.body.addEventListener('click', function(e){{
+            if(e.target.closest('.stApp')){{
+                const span = document.createElement('span');
+                span.style.left = (e.clientX-80)+'px';
+                span.style.top = (e.clientY-80)+'px';
+                span.style.width = '160px';
+                span.style.height = '160px';
+                ripple.appendChild(span);
+                setTimeout(()=>{{span.remove();}}, 1200);
+            }}
+        }});
+    }}
+    // Add cursor-following wave
+    if(!window.cursorWaveAdded){{
+        window.cursorWaveAdded = true;
+        const wave = document.createElement('div');
+        wave.className = 'cursor-wave';
+        document.body.appendChild(wave);
+        window.parent.document.body.addEventListener('mousemove', function(e){{
+            if(e.target.closest('.stApp')){{
+                const span = document.createElement('span');
+                span.style.left = (e.clientX-24)+'px';
+                span.style.top = (e.clientY-24)+'px';
+                wave.appendChild(span);
+                setTimeout(()=>{{span.remove();}}, 1200);
+            }}
+        }});
+    }}
+    </script>
+''', unsafe_allow_html=True)
