@@ -1633,33 +1633,9 @@ if ("Legacy Vault", "🏛️") not in SECTIONS:
 if "hall_of_fame" not in st.session_state:
     st.session_state["hall_of_fame"] = []
 
-# Cinematic intro animation for first-time users
+# Cinematic intro animation for first-time users (DISABLED to prevent blocking)
 if "cinematic_intro" not in st.session_state:
-    st.session_state["cinematic_intro"] = False
-if not st.session_state["cinematic_intro"]:
-    st.markdown('''
-        <style>
-        .cinematic-intro {
-            position: fixed; top:0; left:0; width:100vw; height:100vh; z-index:99999;
-            background: linear-gradient(120deg, #1a1f2b 0%, #232946 50%, #2e3a59 100%);
-            display: flex; align-items: center; justify-content: center;
-            animation: fadein 1.2s cubic-bezier(.4,2,.6,1);
-        }
-        .cinematic-title {
-            font-size: 2.8rem; font-weight: 900; color: #FFD700;
-            text-shadow: 0 4px 32px #0057B8, 0 2px 8px #FFD70044;
-            letter-spacing: 0.08em;
-            animation: cinematicglow 2.5s infinite alternate;
-        }
-        @keyframes cinematicglow {
-            0% { text-shadow: 0 4px 32px #0057B8, 0 2px 8px #FFD70044; }
-            100% { text-shadow: 0 8px 48px #FFD700, 0 2px 16px #0057B8; }
-        }
-        </style>
-        <div class="cinematic-intro"><div class="cinematic-title">Obsidian Protocol<br>Legacy & Future</div></div>
-        <script>setTimeout(()=>{window.parent.postMessage({isStreamlitMessage:true,type:'cinematic_intro_done'},'*');}, 3200);</script>
-    ''', unsafe_allow_html=True)
-    st.session_state["cinematic_intro"] = True
+    st.session_state["cinematic_intro"] = True  # Skip intro, set to True by default
 
 # Legacy Vault section
 if st.session_state["active_section"] == "Legacy Vault":
