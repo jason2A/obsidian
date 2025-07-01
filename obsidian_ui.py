@@ -87,6 +87,9 @@ except ImportError:
     util = None
     cosine_similarity = None
 
+# Set page config first (must be first Streamlit command)
+st.set_page_config(page_title="Obsidian Protocol v2.0", layout="wide")
+
 # Custom CSS for dark mode and elegant UI
 st.markdown('''
     <style>
@@ -99,8 +102,6 @@ st.markdown('''
     .stCodeBlock { background: #242526 !important; }
     </style>
 ''', unsafe_allow_html=True)
-
-st.set_page_config(page_title="Obsidian Protocol v2.0", layout="wide")
 
 # Sidebar
 st.sidebar.title("🧠 Obsidian Protocol v2.0")
