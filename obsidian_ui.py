@@ -2324,7 +2324,7 @@ st.markdown(f'''
         for(let i=0;i<{st.session_state['aurora_density']};i++){{
             const s = document.createElement('span');
             s.style.top = (10+80*i/{st.session_state['aurora_density']})+'vh';
-            s.style.animationDuration = ({10+4*i}*{1/st.session_state['bg_speed']})+'s';
+            s.style.animationDuration = (10+4*i)*{1/st.session_state['bg_speed']}+'s';
             aurora.appendChild(s);
         }}
         document.body.appendChild(aurora);
