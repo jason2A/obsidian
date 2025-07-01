@@ -3,6 +3,7 @@ import tempfile
 import os
 from io import BytesIO
 import base64
+import getpass
 
 # PDF
 try:
@@ -91,94 +92,291 @@ except ImportError:
 st.set_page_config(page_title="Obsidian Protocol v2.0", layout="wide")
 st.markdown('''
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     body, .stApp {
-        background: linear-gradient(135deg, #e0e7ef 0%, #f8fafc 100%);
-        color: #222;
-        font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
-        font-size: 18px;
-        letter-spacing: 0.01em;
+        background: linear-gradient(120deg, #1a1f2b 0%, #232946 50%, #2e3a59 100%);
+        min-height: 100vh;
+        animation: glassbgmove 24s ease-in-out infinite alternate;
+        transition: background 0.8s cubic-bezier(.4,2,.6,1);
+        will-change: background, opacity, transform;
     }
-    .stTextInput>div>div>input, .stTextArea textarea, .stButton>button {
-        background: rgba(255,255,255,0.7);
-        color: #222;
-        border-radius: 18px;
-        border: 1px solid #e0e7ef;
-        font-size: 1.1rem;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
-        transition: box-shadow 0.2s, background 0.2s;
+    @keyframes glassbgmove {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 100% 50%; }
     }
-    .stTextInput>div>div>input:focus, .stTextArea textarea:focus, .stButton>button:focus {
-        box-shadow: 0 0 0 3px #b3d4fc;
-        background: rgba(255,255,255,0.9);
+    .aurora-bg {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0;
+        pointer-events: none;
+        background: radial-gradient(circle at 20% 40%, #00c3ff44 0%, #0057b822 60%, transparent 100%),
+                    radial-gradient(circle at 80% 60%, #ffd70044 0%, #ffb30022 60%, transparent 100%);
+        animation: auroraMove 18s ease-in-out infinite alternate;
+        opacity: 0.7;
     }
-    .stTabs [data-baseweb="tab"] {
-        background: rgba(255,255,255,0.5);
-        color: #222;
-        border-radius: 18px 18px 0 0;
-        border: 1px solid #e0e7ef;
-        margin-right: 4px;
-        font-size: 1.1rem;
-        font-weight: 500;
-        transition: background 0.2s, color 0.2s;
+    @keyframes auroraMove {
+        0% { background-position: 0% 0%, 100% 100%; }
+        100% { background-position: 100% 100%, 0% 0%; }
     }
-    .stTabs [aria-selected="true"] {
-        background: rgba(255,255,255,0.85);
-        color: #0057B8;
-        border-bottom: 2px solid #0057B8;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    .glass-sidebar {
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        width: 72px;
+        background: rgba(34, 40, 60, 0.22);
+        box-shadow: 4px 0 32px #0057B822;
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        border-right: 2px solid rgba(255,255,255,0.08);
+        z-index: 10001;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1.5rem 0 1.2rem 0;
+        gap: 1.2rem;
+        transition: width 0.35s cubic-bezier(.4,2,.6,1), background 0.5s, box-shadow 0.3s cubic-bezier(.4,2,.6,1);
     }
-    .stCodeBlock {
+    .glass-sidebar.expanded {
+        width: 260px;
+        align-items: flex-start;
+        padding-left: 1.2rem;
+        background: rgba(34, 40, 60, 0.32);
+    }
+    .sidebar-toggle {
+        position: absolute;
+        top: 1.2rem;
+        right: -18px;
+        background: linear-gradient(135deg, #0057B8 0%, #FFD700 100%);
+        color: #fff;
+        border-radius: 50%;
+        width: 36px; height: 36px;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 12px #FFD70044;
+        border: none;
+        cursor: pointer;
+        z-index: 10002;
+        transition: background 0.2s, transform 0.1s, box-shadow 0.2s cubic-bezier(.4,2,.6,1);
+        animation: pulse 1.6s cubic-bezier(.4,2,.6,1) infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 #FFD70044; }
+        70% { box-shadow: 0 0 0 12px #FFD70011; }
+        100% { box-shadow: 0 0 0 0 #FFD70044; }
+    }
+    .sidebar-toggle:hover { background: linear-gradient(135deg, #FFD700 0%, #0057B8 100%); }
+    .sidebar-toggle:active {
+        transform: scale(0.92) rotate(-8deg);
+        box-shadow: 0 0 0 0 #FFD70044;
+    }
+    .sidebar-avatar {
+        width: 48px; height: 48px;
+        border-radius: 50%;
+        margin-bottom: 1.5rem;
+        border: 2.5px solid #FFD700;
+        box-shadow: 0 2px 12px #FFD70033;
+        background: url('https://randomuser.me/api/portraits/men/32.jpg') center/cover;
+        transition: border 0.3s, box-shadow 0.3s;
+    }
+    .sidebar-section {
+        display: flex;
+        align-items: center;
+        gap: 1.1rem;
+        padding: 0.85rem 1.1rem;
+        border-radius: 16px;
+        font-size: 1.13rem;
+        font-weight: 600;
+        color: #eaf6ff;
+        cursor: pointer;
+        transition: background 0.18s cubic-bezier(.4,2,.6,1), color 0.18s, box-shadow 0.18s, transform 0.18s cubic-bezier(.4,2,.6,1);
+        border: 1.5px solid transparent;
+        width: 100%;
+        margin-bottom: 0.2rem;
+        position: relative;
+        opacity: 0.92;
+        backdrop-filter: blur(2px);
+        animation: fadein 0.7s;
+    }
+    @keyframes fadein { from { opacity: 0; transform: translateX(-16px);} to { opacity: 0.92; transform: none; } }
+    .sidebar-section.selected {
+        background: rgba(0,87,184,0.22);
+        color: #FFD700;
+        border: 1.5px solid #FFD700;
+        box-shadow: 0 2px 16px #FFD70033;
+        transform: scale(1.04);
+    }
+    .sidebar-section:hover {
+        background: rgba(0,87,184,0.18);
+        color: #FFD700;
+        transform: scale(1.03);
+    }
+    .sidebar-section:active {
+        transform: scale(0.97) translateX(2px);
+        box-shadow: 0 2px 16px #FFD70055;
+    }
+    .sidebar-section .tooltip {
+        visibility: hidden;
+        opacity: 0;
+        background: rgba(0,0,0,0.7);
+        color: #fff;
+        border-radius: 8px;
+        padding: 0.3rem 0.7rem;
+        position: absolute;
+        left: 60px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.98rem;
+        white-space: nowrap;
+        z-index: 10003;
+        transition: opacity 0.2s;
+        animation: fadein 0.4s cubic-bezier(.4,2,.6,1);
+    }
+    .sidebar-section:hover .tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+    .sidebar-bottom {
+        margin-top: auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+        align-items: flex-start;
+    }
+    .sidebar-settings {
+        color: #FFD700;
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-left: 0.5rem;
+        margin-bottom: 0.5rem;
+        transition: color 0.2s;
+    }
+    .sidebar-settings:hover { color: #0057B8; }
+    .main-content-glass {
+        margin-left: 90px;
+        margin-top: 2.5rem;
+        padding: 2.5rem 2.5rem 2.5rem 2.5rem;
+        background: rgba(255,255,255,0.22);
+        box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+        backdrop-filter: blur(32px) saturate(180%);
+        -webkit-backdrop-filter: blur(32px) saturate(180%);
+        border-radius: 32px;
+        border: 2px solid rgba(255,255,255,0.18);
+        min-height: 80vh;
+        max-width: 1100px;
+        transition: box-shadow 0.22s cubic-bezier(.4,2,.6,1), background 0.5s, transform 0.22s cubic-bezier(.4,2,.6,1), opacity 0.22s cubic-bezier(.4,2,.6,1);
+        will-change: box-shadow, background, transform, opacity;
+        animation: fadein 0.8s;
+    }
+    .main-content-glass.expanded { margin-left: 280px; }
+    .glass-card {
+        background: rgba(255,255,255,0.22);
+        box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        border-radius: 24px;
+        border: 1.5px solid rgba(255,255,255,0.18);
+        padding: 2.5rem 2rem 2rem 2rem;
+        margin-bottom: 2rem;
+        transition: box-shadow 0.22s cubic-bezier(.4,2,.6,1), background 0.5s, transform 0.22s cubic-bezier(.4,2,.6,1), opacity 0.22s cubic-bezier(.4,2,.6,1);
+        will-change: box-shadow, background, transform, opacity;
+        animation: fadein 0.6s cubic-bezier(.4,2,.6,1);
+    }
+    .glass-card:hover {
+        box-shadow: 0 12px 48px 0 rgba(31,38,135,0.22);
+        transform: translateY(-2px) scale(1.01);
+        background: rgba(255,255,255,0.28);
+    }
+    .glass-input, .glass-select, .glass-slider {
         background: rgba(255,255,255,0.7) !important;
         color: #222 !important;
-        border-radius: 12px;
-        font-size: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        border-radius: 18px !important;
+        border: 1.5px solid #e0e7ef !important;
+        font-size: 1.15rem !important;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04) !important;
+        transition: box-shadow 0.18s cubic-bezier(.4,2,.6,1), background 0.18s cubic-bezier(.4,2,.6,1);
     }
-    .stSidebar {
-        background: rgba(255,255,255,0.6) !important;
-        color: #222 !important;
-        border-radius: 0 24px 24px 0;
-        box-shadow: 2px 0 16px rgba(0,0,0,0.04);
+    .glass-input:focus, .glass-select:focus, .glass-slider:focus {
+        box-shadow: 0 0 0 4px #FFD70055 !important;
     }
-    .stMarkdown, .stHeader, .stSubheader {
-        font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
-        font-size: 1.15em;
-    }
-    .stButton>button {
-        box-shadow: 0 2px 12px rgba(0,87,184,0.08);
+    .glass-btn {
+        box-shadow: 0 2px 16px rgba(0,87,184,0.10);
         background: linear-gradient(90deg, #e3e9f7 0%, #eaf6ff 100%);
         color: #0057B8;
         border-radius: 18px;
-        font-weight: 600;
-        transition: background 0.2s, color 0.2s, transform 0.1s;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: background 0.18s cubic-bezier(.4,2,.6,1), color 0.18s, box-shadow 0.18s, transform 0.18s cubic-bezier(.4,2,.6,1);
+        border: 1.5px solid #b3d4fc;
+        position: relative;
+        overflow: hidden;
+        animation: fadein 0.7s;
+        will-change: background, color, box-shadow, transform;
     }
-    .stButton>button:hover {
+    .glass-btn:hover {
         background: linear-gradient(90deg, #d0e6ff 0%, #b3d4fc 100%);
         color: #003366;
-        transform: scale(1.04);
+        transform: scale(1.045);
+        box-shadow: 0 4px 32px #FFD70044;
     }
-    .stDownloadButton button {
-        background: #0057B8;
-        color: #FFF;
-        border-radius: 18px;
-        font-weight: 600;
-        transition: background 0.2s, transform 0.1s;
+    .glass-btn:active {
+        transform: scale(0.96);
+        box-shadow: 0 2px 16px #FFD70077;
     }
-    .stDownloadButton button:hover {
-        background: #003366;
-        transform: scale(1.04);
+    .glass-btn::after {
+        content: '';
+        position: absolute;
+        left: 50%; top: 50%;
+        width: 0; height: 0;
+        background: rgba(0,87,184,0.18);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.35s cubic-bezier(.4,2,.6,1), height 0.35s cubic-bezier(.4,2,.6,1), opacity 0.35s;
+        opacity: 0.5;
+        pointer-events: none;
     }
-    .block-container {
-        padding: 2rem 2rem 2rem 2rem;
-        max-width: 900px;
-        margin: auto;
+    .glass-btn:active::after {
+        width: 180%; height: 180%; opacity: 0;
+        transition: width 0.35s cubic-bezier(.4,2,.6,1), height 0.35s cubic-bezier(.4,2,.6,1), opacity 0.35s;
     }
-    .stAlert, .stInfo, .stSuccess, .stWarning, .stError {
-        border-radius: 16px;
-        font-size: 1.05em;
+    @media (max-width: 900px) {
+        .main-content-glass, .main-content-glass.expanded { margin-left: 0 !important; max-width: 100vw; border-radius: 0; }
+        .glass-sidebar, .glass-sidebar.expanded { position: static; width: 100vw !important; flex-direction: row; align-items: center; border-radius: 0; box-shadow: none; }
     }
     </style>
 ''', unsafe_allow_html=True)
+
+# Aurora/bokeh animated background layer
+st.markdown('<div class="aurora-bg"></div>', unsafe_allow_html=True)
+
+# Live theme/customization panel (in sidebar bottom)
+if "glass_opacity" not in st.session_state:
+    st.session_state["glass_opacity"] = 0.22
+if "accent_color" not in st.session_state:
+    st.session_state["accent_color"] = "#FFD700"
+if "bg_style" not in st.session_state:
+    st.session_state["bg_style"] = "Aurora"
+if "font_family" not in st.session_state:
+    st.session_state["font_family"] = "Inter"
+
+# Glassy sticky toolbar (at top of page)
+st.markdown('''
+    <div class="glass-toolbar">
+        <span class="toolbar-title">🧠 Obsidian Protocol v2.0</span>
+        <span class="toolbar-tip">💡 Did you know? You can batch process files and visualize knowledge graphs!</span>
+    </div>
+''', unsafe_allow_html=True)
+
+# Floating Action Button (FAB) for quick Analyze
+def render_fab():
+    st.markdown('''
+        <button class="fab" onclick="window.scrollTo({top: 0, behavior: 'smooth'});">🔍</button>
+    ''', unsafe_allow_html=True)
+render_fab()
+
+# Wrap main content in glass-card for luxury look
+from contextlib import contextmanager
+@contextmanager
+def glass_card():
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    yield
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Onboarding tour (show only once per session)
 if "onboarded" not in st.session_state:
@@ -188,23 +386,84 @@ if not st.session_state["onboarded"]:
     if st.button("Got it! Start Exploring", key="onboard_btn"):
         st.session_state["onboarded"] = True
 
-# Confetti on successful analysis (AI Tools tab)
+# Personalized greeting (top of main content)
+user = getpass.getuser() if hasattr(getpass, 'getuser') else "User"
+st.markdown(f'<div style="font-size:1.25rem;font-weight:600;margin-bottom:1.2rem;color:#FFD700;">👋 Welcome back, {user}! You are special. ✨</div>', unsafe_allow_html=True)
+
+# Animated loader bar (example, can be shown during processing)
+def show_loader():
+    st.markdown('<div class="glass-loader"></div>', unsafe_allow_html=True)
+
+# Confetti/sparkle on key actions (use st.balloons or st.snow for now, can be replaced with JS confetti)
 def celebrate():
     st.balloons()
     st.success("🎉 Analysis complete! Enjoy your insights.")
 
-# Sidebar
-st.sidebar.title("🧠 Obsidian Protocol v2.0")
-st.sidebar.markdown("World-Changing AI Media Analyzer")
-st.sidebar.info("Upload, analyze, and transform any media. All local, all free.")
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Features:**\n- Multilingual, TTS, Q&A, Captioning, Batch, Graphs, Privacy\n- No OpenAI API required\n- Free forever (local models/public APIs)")
+# Collapsible sidebar state
+if "sidebar_expanded" not in st.session_state:
+    st.session_state["sidebar_expanded"] = False
 
-# Tabs for main features
-TABS = [
-    "Analyze", "AI Tools", "Q&A", "Batch", "Captioning", "Audio Analysis", "Graph", "Similarity", "Workflow", "Timeline", "Topics", "Explain", "Settings", "History", "Export", "Accessibility", "User Profiles", "Real-Time Collaboration", "Data Visualizations", "Theme Picker"
+# Sidebar navigation with avatar, toggle, and settings
+SECTIONS = [
+    ("Analyze", "🔍"),
+    ("AI Tools", "🤖"),
+    ("Q&A", "❓"),
+    ("Batch", "📦"),
+    ("Captioning", "🖼️"),
+    ("Audio Analysis", "🎤"),
+    ("Graph", "🕸️"),
+    ("Similarity", "🧬"),
+    ("Workflow", "🔗"),
+    ("Timeline", "🗓️"),
+    ("Topics", "📚"),
+    ("Explain", "💡"),
+    ("Settings", "⚙️"),
+    ("History", "🕑"),
+    ("Export", "⬇️"),
+    ("Accessibility", "🦾"),
+    ("User Profiles", "👤"),
+    ("Real-Time Collaboration", "🤝"),
+    ("Data Visualizations", "📊"),
+    ("Theme Picker", "🎨")
 ]
-tabs = st.tabs(TABS)
+if "active_section" not in st.session_state:
+    st.session_state["active_section"] = SECTIONS[0][0]
+
+# Sidebar HTML
+sidebar_class = "glass-sidebar expanded" if st.session_state["sidebar_expanded"] else "glass-sidebar"
+sidebar_html = f'<div class="{sidebar_class}">' + \
+    '<div class="sidebar-avatar"></div>' + \
+    '<button class="sidebar-toggle" onclick="window.parent.postMessage({isStreamlitMessage: true, type: \'sidebar:toggle\'}, \'*\')">' + ("⏪" if st.session_state["sidebar_expanded"] else "⏩") + '</button>'
+for section, icon in SECTIONS:
+    selected = "selected" if st.session_state["active_section"] == section else ""
+    tooltip = f'<span class="tooltip">{section}</span>'
+    sidebar_html += f'<div class="sidebar-section {selected}" onclick="window.location.hash=\"#{section}\";window.dispatchEvent(new Event(\'hashchange\'))">{icon} {tooltip if not st.session_state["sidebar_expanded"] else section}</div>'
+sidebar_html += '<div class="sidebar-bottom">'
+sidebar_html += '<span class="sidebar-settings" title="Settings">⚙️</span>'
+sidebar_html += '<span class="sidebar-settings" title="Theme">🎨</span>'
+sidebar_html += '</div></div>'
+st.markdown(sidebar_html, unsafe_allow_html=True)
+
+# JS for sidebar toggle and section switching
+st.markdown('''
+    <script>
+    window.addEventListener('hashchange', function() {
+        const section = window.location.hash.replace('#','');
+        if (section) {
+            window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: section}, '*');
+        }
+    });
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.isStreamlitMessage && event.data.type === 'sidebar:toggle') {
+            window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:rerun'}, '*');
+        }
+    });
+    </script>
+''', unsafe_allow_html=True)
+
+# Main content area as a glass card, animated margin
+main_class = "main-content-glass expanded" if st.session_state["sidebar_expanded"] else "main-content-glass"
+st.markdown(f'<div class="{main_class}">', unsafe_allow_html=True)
 
 # Session state for results and chat
 if "results" not in st.session_state:
@@ -251,7 +510,7 @@ def get_sentence_transformer():
     return None
 
 # --- Analyze Tab ---
-with tabs[0]:
+if st.session_state["active_section"] == "Analyze":
     st.header("Analyze File or Content")
     analyze_type = st.selectbox("Select input type:", ["Text", "TXT File", "PDF", "URL", "YouTube Video", "Image", "Audio"])
     content = ""
@@ -358,7 +617,7 @@ with tabs[0]:
                 st.warning("TTS engine not installed. Run: pip install gtts pyttsx3")
 
 # --- AI Tools Tab ---
-with tabs[1]:
+if st.session_state["active_section"] == "AI Tools":
     st.header("AI Tools")
     content = st.session_state["results"]
     if not content:
@@ -503,7 +762,7 @@ with tabs[1]:
             st.success(st.session_state["ai_outputs"]["translation"])
 
 # --- Q&A Tab ---
-with tabs[2]:
+if st.session_state["active_section"] == "Q&A":
     st.header("Document Q&A")
     content = st.session_state["results"]
     if not content:
@@ -516,7 +775,7 @@ with tabs[2]:
             st.success(f"**Answer:** {answer['answer']}")
 
 # --- Batch Tab ---
-with tabs[3]:
+if st.session_state["active_section"] == "Batch":
     st.header("Batch Processing")
     batch_files = st.file_uploader("Upload multiple files (TXT, PDF, Image, Audio)", type=["txt", "pdf", "jpg", "jpeg", "png", "mp3", "wav", "m4a"], accept_multiple_files=True)
     batch_results = []
@@ -550,7 +809,7 @@ with tabs[3]:
             st.download_button("Download All Results as .txt", all_text, file_name="obsidian_batch_output.txt")
 
 # --- Captioning Tab ---
-with tabs[4]:
+if st.session_state["active_section"] == "Captioning":
     st.header("Image Captioning")
     if BlipProcessor and BlipForConditionalGeneration:
         img_file = st.file_uploader("Upload an image for captioning", type=["jpg", "jpeg", "png"], key="caption_img")
@@ -567,7 +826,7 @@ with tabs[4]:
         st.warning("BLIP not installed. Run: pip install transformers torch")
 
 # --- Audio Analysis Tab ---
-with tabs[5]:
+if st.session_state["active_section"] == "Audio Analysis":
     st.header("Audio Sentiment & Speaker Diarization")
     audio_file = st.file_uploader("Upload audio for analysis", type=["mp3", "wav", "m4a"], key="audio_analysis")
     if audio_file and aS:
@@ -581,7 +840,7 @@ with tabs[5]:
         st.warning("pyAudioAnalysis not installed. Run: pip install pyAudioAnalysis")
 
 # --- Knowledge Graph Tab ---
-with tabs[6]:
+if st.session_state["active_section"] == "Graph":
     st.header("Interactive Knowledge Graph Extraction")
     content = st.session_state["results"]
     if not content:
@@ -612,7 +871,7 @@ with tabs[6]:
         st.warning("networkx, pyvis, or spaCy not installed. Run: pip install networkx pyvis spacy && python -m spacy download en_core_web_sm")
 
 # --- Similarity/Plagiarism Tab ---
-with tabs[7]:
+if st.session_state["active_section"] == "Similarity":
     st.header("Plagiarism & Similarity Detection")
     content = st.session_state["results"]
     if not content:
@@ -632,7 +891,7 @@ with tabs[7]:
         st.warning("sentence-transformers or scikit-learn not installed. Run: pip install sentence-transformers scikit-learn")
 
 # --- Workflow Tab ---
-with tabs[8]:
+if st.session_state["active_section"] == "Workflow":
     st.header("Customizable Workflows (Chain Tools)")
     st.info("Select a sequence of tools to apply. (Drag-and-drop coming soon!)")
     steps = st.multiselect("Choose steps:", ["OCR", "Translate", "Summarize", "NER", "TTS"])
@@ -663,7 +922,7 @@ with tabs[8]:
         st.code(workflow_result, language="text")
 
 # --- Timeline Extraction Tab ---
-with tabs[9]:
+if st.session_state["active_section"] == "Timeline":
     st.header("Timeline Extraction & Visualization")
     content = st.session_state["results"]
     if not content or not nlp:
@@ -683,7 +942,7 @@ with tabs[9]:
             st.info("No dated events found in the text.")
 
 # --- Topic Modeling Tab ---
-with tabs[10]:
+if st.session_state["active_section"] == "Topics":
     st.header("Topic Modeling & Clustering")
     content = st.session_state["results"]
     if not content:
@@ -710,7 +969,7 @@ with tabs[10]:
             st.warning(f"Topic modeling requires scikit-learn and numpy: {e}")
 
 # --- Explainability Tab ---
-with tabs[11]:
+if st.session_state["active_section"] == "Explain":
     st.header("Explainability & Model Transparency")
     content = st.session_state["results"]
     ai_outputs = st.session_state["ai_outputs"]
@@ -747,7 +1006,7 @@ with tabs[11]:
                     st.markdown(f"{sent}.")
 
 # --- Settings Tab ---
-with tabs[12]:
+if st.session_state["active_section"] == "Settings":
     st.header("Settings & Privacy")
     st.markdown("- All processing is local unless you use a public API.\n- You can clear all data below.")
     if st.button("Clear All Data"):
@@ -755,7 +1014,7 @@ with tabs[12]:
         st.success("All session data cleared.")
 
 # --- History Tab ---
-with tabs[13]:
+if st.session_state["active_section"] == "History":
     st.header("History")
     st.write("View your previous results and chat history.")
     if st.session_state.get("results"):
@@ -777,7 +1036,7 @@ with tabs[13]:
         st.write("No history yet.")
 
 # --- Export Tab ---
-with tabs[14]:
+if st.session_state["active_section"] == "Export":
     st.header("Export & Sharing")
     content = st.session_state["results"]
     ai_outputs = st.session_state["ai_outputs"]
@@ -823,7 +1082,7 @@ with tabs[14]:
             st.info("Install python-docx for Word export: pip install python-docx")
 
 # --- Accessibility Tab ---
-with tabs[15]:
+if st.session_state["active_section"] == "Accessibility":
     st.header("Accessibility & Display Settings")
     st.markdown("**Adjust font size and enable dyslexia-friendly font.**")
     font_size = st.slider("Font Size", 12, 32, 16)
@@ -832,7 +1091,7 @@ with tabs[15]:
     st.info("Font size and font will update on next rerun or tab switch.")
 
 # --- User Profiles & Saved Sessions Tab ---
-with tabs[16]:
+if st.session_state["active_section"] == "User Profiles":
     st.header("User Profiles & Saved Sessions")
     username = st.text_input("Enter your username to save/load your session:")
     if st.button("Save Session") and username:
@@ -851,13 +1110,13 @@ with tabs[16]:
     st.info("Sessions are saved locally in your browser session.")
 
 # --- Real-Time Collaboration Placeholder Tab ---
-with tabs[17]:
+if st.session_state["active_section"] == "Real-Time Collaboration":
     st.header("Real-Time Collaboration (Coming Soon)")
     st.info("This feature will allow multiple users to analyze and discuss the same document in real time.")
     st.markdown("If you want to help build this, open an issue or PR!")
 
 # --- Data Visualizations Tab ---
-with tabs[18]:
+if st.session_state["active_section"] == "Data Visualizations":
     st.header("Data Visualizations")
     import matplotlib.pyplot as plt
     import collections
@@ -892,7 +1151,7 @@ with tabs[18]:
             st.pyplot(fig)
 
 # --- Theme Picker Tab ---
-with tabs[19]:
+if st.session_state["active_section"] == "Theme Picker":
     st.header("Customizable Themes")
     theme = st.selectbox("Choose a theme:", ["Black & Navy Blue", "Classic Dark", "Light", "Solarized"])
     if theme == "Black & Navy Blue":
@@ -908,3 +1167,5 @@ with tabs[19]:
 # Footer
 st.markdown("<hr style='margin-top:2em;margin-bottom:1em'>", unsafe_allow_html=True)
 st.caption("Obsidian Protocol v2.0 | World-Changing Streamlit UI | All media types & AI tools | Free forever | by AI")
+
+st.markdown('</div>', unsafe_allow_html=True)
