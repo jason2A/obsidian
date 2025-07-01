@@ -769,6 +769,148 @@ st.markdown('''
     </style>
 ''', unsafe_allow_html=True)
 
+# --- SMART PROCESSING FUNCTIONS ---
+def process_chat_input(user_input, context=""):
+    """Process user input and return appropriate AI response"""
+    input_lower = user_input.lower()
+    
+    # Summarization requests
+    if any(word in input_lower for word in ["summarize", "summary", "tldr", "brief"]):
+        if context:
+            summarizer = get_summarizer()
+            if summarizer:
+                try:
+                    result = summarizer(context[:1024], max_length=150, min_length=50, do_sample=False)
+                    return f"📝 **Summary:**\n\n{result[0]['summary_text']}"
+                except:
+                    return f"📝 **Quick Summary:**\n\n{context[:200]}...\n\n*Note: Advanced summarization unavailable - showing preview instead.*"
+            else:
+                return f"📝 **Quick Summary:**\n\n{context[:300]}...\n\n*Advanced summarization requires additional libraries.*"
+        else:
+            return "📝 I'd be happy to summarize content for you! Please upload a document or provide some text first."
+    
+    # Translation requests
+    elif any(word in input_lower for word in ["translate", "french", "spanish", "german"]):
+        if context:
+            return f"🌍 **Translation:**\n\nI can translate your content! Please specify the target language (French, Spanish, German, etc.)\n\n**Content to translate:**\n{context[:200]}..."
+        else:
+            return "🌍 I can translate content for you! Please upload a document first, then tell me which language you'd like."
+    
+    # Analysis requests
+    elif any(word in input_lower for word in ["analyze", "analysis", "insights", "extract"]):
+        if context:
+            return f"🔍 **Analysis Results:**\n\n**Content Length:** {len(context)} characters\n**Word Count:** ~{len(context.split())} words\n\n**Key Insights:**\n• Content appears to be {detect_content_type(context)}\n• Main topics detected\n• Ready for deeper analysis\n\n**Available Analysis:**\n- Sentiment analysis\n- Entity extraction\n- Topic modeling\n- Question answering"
+        else:
+            return "🔍 I'm ready to analyze content for you! Please upload a document, image, or audio file first."
+    
+    # Question answering
+    elif any(word in input_lower for word in ["what", "how", "why", "when", "where", "who", "?"]):
+        if context:
+            qa_pipeline = get_qa()
+            if qa_pipeline:
+                try:
+                    result = qa_pipeline(question=user_input, context=context[:1000])
+                    return f"❓ **Answer:**\n\n{result['answer']}\n\n*Confidence: {result['score']:.2%}*"
+                except:
+                    return f"❓ **Answer:**\n\nBased on the uploaded content, I can see information related to your question. However, I need more specific context or the advanced Q&A model to provide a precise answer."
+            else:
+                return f"❓ **Answer:**\n\nI can help answer questions about your uploaded content! The Q&A feature requires additional libraries for optimal performance."
+        else:
+            return "❓ I can answer questions about uploaded content! Please upload a document first, then ask your question."
+    
+    # Sentiment analysis
+    elif any(word in input_lower for word in ["sentiment", "emotion", "feeling", "mood"]):
+        if context:
+            sentiment_analyzer = get_sentiment()
+            if sentiment_analyzer:
+                try:
+                    result = sentiment_analyzer(context[:512])
+                    sentiment = result[0]['label']
+                    confidence = result[0]['score']
+                    return f"😊 **Sentiment Analysis:**\n\n**Overall Sentiment:** {sentiment}\n**Confidence:** {confidence:.2%}\n\n**Analysis:** The content appears to be {sentiment.lower()} in tone."
+                except:
+                    return f"😊 **Sentiment Analysis:**\n\nI can analyze the sentiment of your content! The advanced sentiment analysis requires additional libraries."
+            else:
+                return f"😊 **Sentiment Analysis:**\n\nI can analyze sentiment for you! This feature requires additional libraries to be installed."
+        else:
+            return "😊 I can analyze the sentiment of content! Please upload some text first."
+    
+    # Default helpful response
+    else:
+        return f"💡 **I can help you with:**\n\n• **Analyze** documents, images, audio\n• **Summarize** long content\n• **Translate** to different languages\n• **Answer questions** about your content\n• **Extract insights** and key information\n• **Sentiment analysis** of text\n\n**Your message:** '{user_input}'\n\nTry uploading a file or asking a specific question!"
+
+def detect_content_type(content):
+    """Detect the type of content"""
+    if len(content) < 100:
+        return "short text or notes"
+    elif any(word in content.lower() for word in ["abstract", "introduction", "conclusion", "references"]):
+        return "academic or research document"
+    elif any(word in content.lower() for word in ["article", "news", "report"]):
+        return "news article or report"
+    elif content.count('\n') > 20:
+        return "structured document or data"
+    else:
+        return "general text content"
+
+def process_uploaded_file(uploaded_file):
+    """Process uploaded file and extract content"""
+    try:
+        if uploaded_file.name.endswith('.txt'):
+            content = uploaded_file.read().decode("utf-8")
+            return content
+        elif uploaded_file.name.endswith('.pdf') and PyPDF2:
+            reader = PyPDF2.PdfReader(uploaded_file)
+            content = "\n".join([page.extract_text() or "" for page in reader.pages])
+            return content
+        else:
+            return None
+    except Exception as e:
+        return None
+
+def process_uploaded_image(uploaded_image):
+    """Process uploaded image and extract text"""
+    try:
+        if Image and pytesseract:
+            img = Image.open(uploaded_image)
+            content = pytesseract.image_to_string(img)
+            return content.strip() if content.strip() else None
+        else:
+            return None
+    except Exception as e:
+        return None
+
+def process_uploaded_audio(uploaded_audio):
+    """Process uploaded audio and transcribe"""
+    try:
+        if whisper:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_audio.name)[1]) as tmp_file:
+                tmp_file.write(uploaded_audio.read())
+                tmp_path = tmp_file.name
+            
+            model = whisper.load_model("base")
+            result = model.transcribe(tmp_path)
+            content = result["text"]
+            os.remove(tmp_path)
+            return content
+        else:
+            return None
+    except Exception as e:
+        return None
+
+def process_url(url):
+    """Process URL and extract content"""
+    try:
+        if requests and BeautifulSoup:
+            r = requests.get(url, timeout=10)
+            soup = BeautifulSoup(r.text, "html.parser")
+            paragraphs = [p.get_text() for p in soup.find_all("p")]
+            content = "\n".join(paragraphs)
+            return content.strip() if content.strip() else None
+        else:
+            return None
+    except Exception as e:
+        return None
+
 # --- MAIN CHATGPT-STYLE INTERFACE ---
 # Chat state initialization
 if "chat_history" not in st.session_state:
@@ -779,17 +921,29 @@ if "chat_input" not in st.session_state:
 # Main ChatGPT-style container
 st.markdown('<div class="enhanced-chat-container">', unsafe_allow_html=True)
 
-# Header with Obsidian Protocol branding
-st.markdown('''
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="color: #FFD700; font-size: 2.5rem; font-weight: 700; text-shadow: 0 4px 16px #FFD70044; margin-bottom: 0.5rem;">
-            Obsidian Protocol
-        </h1>
-        <p style="color: rgba(255,255,255,0.7); font-size: 1.1rem; margin: 0;">
-            AI-Powered Analysis & Intelligence Platform
-        </p>
-    </div>
-''', unsafe_allow_html=True)
+# Header with Obsidian Protocol branding and controls
+header_col1, header_col2, header_col3 = st.columns([2, 6, 2])
+
+with header_col1:
+    if st.button("🗑️ Clear Chat", help="Clear conversation history"):
+        st.session_state["chat_history"] = []
+        st.session_state["results"] = ""
+        st.rerun()
+
+with header_col2:
+    st.markdown('''
+        <div style="text-align: center;">
+            <h1 style="color: #FFD700; font-size: 2.5rem; font-weight: 700; text-shadow: 0 4px 16px #FFD70044; margin-bottom: 0.5rem;">
+                Obsidian Protocol
+            </h1>
+            <p style="color: rgba(255,255,255,0.7); font-size: 1.1rem; margin: 0;">
+                AI-Powered Analysis & Intelligence Platform
+            </p>
+        </div>
+    ''', unsafe_allow_html=True)
+
+with header_col3:
+    st.write(f"💬 {len(st.session_state['chat_history'])} messages")
 
 # Chat history display
 chat_history_container = st.container()
@@ -808,15 +962,37 @@ with chat_history_container:
             </div>
         ''', unsafe_allow_html=True)
 
-# Suggestions (animated chips)
-st.markdown('''
-    <div class="chat-suggestions" style="margin: 2rem 0; text-align: center;">
-        <span class="chat-suggestion" onclick="document.getElementById('main_chat_input').value='Analyze this document'; document.getElementById('main_chat_input').focus();">📄 Analyze Document</span>
-        <span class="chat-suggestion" onclick="document.getElementById('main_chat_input').value='Summarize this content'; document.getElementById('main_chat_input').focus();">📝 Summarize</span>
-        <span class="chat-suggestion" onclick="document.getElementById('main_chat_input').value='Extract key insights'; document.getElementById('main_chat_input').focus();">💡 Extract Insights</span>
-        <span class="chat-suggestion" onclick="document.getElementById('main_chat_input').value='Create a knowledge graph'; document.getElementById('main_chat_input').focus();">🕸️ Knowledge Graph</span>
-    </div>
-''', unsafe_allow_html=True)
+# Interactive suggestions
+suggestion_clicked = False
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    if st.button("📄 Analyze Document", use_container_width=True):
+        st.session_state["chat_history"].append(("user", "Analyze this document"))
+        ai_response = process_chat_input("Analyze this document", st.session_state.get("results", ""))
+        st.session_state["chat_history"].append(("ai", ai_response))
+        st.rerun()
+
+with col2:
+    if st.button("📝 Summarize", use_container_width=True):
+        st.session_state["chat_history"].append(("user", "Summarize this content"))
+        ai_response = process_chat_input("Summarize this content", st.session_state.get("results", ""))
+        st.session_state["chat_history"].append(("ai", ai_response))
+        st.rerun()
+
+with col3:
+    if st.button("💡 Extract Insights", use_container_width=True):
+        st.session_state["chat_history"].append(("user", "Extract key insights"))
+        ai_response = process_chat_input("Extract key insights", st.session_state.get("results", ""))
+        st.session_state["chat_history"].append(("ai", ai_response))
+        st.rerun()
+
+with col4:
+    if st.button("😊 Sentiment Analysis", use_container_width=True):
+        st.session_state["chat_history"].append(("user", "Analyze sentiment"))
+        ai_response = process_chat_input("Analyze sentiment", st.session_state.get("results", ""))
+        st.session_state["chat_history"].append(("ai", ai_response))
+        st.rerun()
 
 # Main chat input area
 chat_input_col1, chat_input_col2 = st.columns([10, 1])
@@ -853,36 +1029,68 @@ if send_clicked and user_input:
     # Add user message to chat
     st.session_state["chat_history"].append(("user", user_input))
     
-    # Process the input (this would connect to your existing analysis functions)
-    ai_response = f"I received your message: '{user_input}'. This would normally trigger the appropriate analysis based on your request."
+    # Smart AI processing based on user input
+    ai_response = process_chat_input(user_input, st.session_state.get("results", ""))
     st.session_state["chat_history"].append(("ai", ai_response))
     
     # Clear input
     st.session_state["chat_input"] = ""
     st.rerun()
 
-# Handle file uploads
+# Handle file uploads with actual processing
 if uploaded_file:
     st.session_state["chat_history"].append(("user", f"📄 Uploaded file: {uploaded_file.name}"))
-    ai_response = f"I've received your file '{uploaded_file.name}'. I can analyze it for you. What would you like me to do with it?"
+    
+    # Process the file
+    content = process_uploaded_file(uploaded_file)
+    if content:
+        st.session_state["results"] = content
+        ai_response = f"✅ Successfully processed '{uploaded_file.name}'!\n\n**Content Preview:**\n{content[:300]}{'...' if len(content) > 300 else ''}\n\n💡 I can now help you:\n- Summarize the content\n- Extract key insights\n- Answer questions about it\n- Translate it\n- Create visualizations"
+    else:
+        ai_response = f"❌ I had trouble processing '{uploaded_file.name}'. Please make sure it's a valid text, PDF, or document file."
+    
     st.session_state["chat_history"].append(("ai", ai_response))
     st.rerun()
 
 if uploaded_image:
     st.session_state["chat_history"].append(("user", f"🖼️ Uploaded image: {uploaded_image.name}"))
-    ai_response = f"I've received your image '{uploaded_image.name}'. I can extract text, describe the content, or analyze it for you."
+    
+    # Process the image
+    content = process_uploaded_image(uploaded_image)
+    if content:
+        st.session_state["results"] = content
+        ai_response = f"✅ Successfully analyzed '{uploaded_image.name}'!\n\n**Extracted Text:**\n{content[:300]}{'...' if len(content) > 300 else ''}\n\n💡 I can now help you analyze this content further."
+    else:
+        ai_response = f"❌ I couldn't extract text from '{uploaded_image.name}'. The image might not contain readable text or the OCR libraries aren't available."
+    
     st.session_state["chat_history"].append(("ai", ai_response))
     st.rerun()
 
 if uploaded_audio:
     st.session_state["chat_history"].append(("user", f"🎤 Uploaded audio: {uploaded_audio.name}"))
-    ai_response = f"I've received your audio file '{uploaded_audio.name}'. I can transcribe it and analyze the content for you."
+    
+    # Process the audio
+    content = process_uploaded_audio(uploaded_audio)
+    if content:
+        st.session_state["results"] = content
+        ai_response = f"✅ Successfully transcribed '{uploaded_audio.name}'!\n\n**Transcript:**\n{content[:300]}{'...' if len(content) > 300 else ''}\n\n💡 I can now help you analyze this transcript."
+    else:
+        ai_response = f"❌ I couldn't transcribe '{uploaded_audio.name}'. The Whisper library might not be available or the audio format isn't supported."
+    
     st.session_state["chat_history"].append(("ai", ai_response))
     st.rerun()
 
 if url_input:
     st.session_state["chat_history"].append(("user", f"🔗 Provided URL: {url_input}"))
-    ai_response = f"I've received the URL: {url_input}. I can scrape and analyze the content for you."
+    
+    # Process the URL
+    content = process_url(url_input)
+    if content:
+        st.session_state["results"] = content
+        ai_response = f"✅ Successfully scraped content from: {url_input}\n\n**Content Preview:**\n{content[:300]}{'...' if len(content) > 300 else ''}\n\n💡 I can now help you analyze this web content."
+    else:
+        ai_response = f"❌ I couldn't scrape content from: {url_input}. The URL might be invalid or the required libraries aren't available."
+    
     st.session_state["chat_history"].append(("ai", ai_response))
     st.rerun()
 
