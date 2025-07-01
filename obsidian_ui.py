@@ -114,7 +114,7 @@ st.sidebar.markdown("**Features:**\n- Multilingual, TTS, Q&A, Captioning, Batch,
 TABS = [
     "Analyze", "AI Tools", "Q&A", "Batch", "Captioning", "Audio Analysis", "Graph", "Similarity", "Workflow", "Timeline", "Topics", "Explain", "Settings", "History", "Export", "Accessibility", "User Profiles", "Real-Time Collaboration", "Data Visualizations", "Theme Picker"
 ]
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19 = st.tabs(TABS)
+tabs = st.tabs(TABS)
 
 # Session state for results and chat
 if "results" not in st.session_state:
@@ -161,7 +161,7 @@ def get_sentence_transformer():
     return None
 
 # --- Analyze Tab ---
-with tab1:
+with tabs[0]:
     st.header("Analyze File or Content")
     analyze_type = st.selectbox("Select input type:", ["Text", "TXT File", "PDF", "URL", "YouTube Video", "Image", "Audio"])
     content = ""
@@ -268,7 +268,7 @@ with tab1:
                 st.warning("TTS engine not installed. Run: pip install gtts pyttsx3")
 
 # --- AI Tools Tab ---
-with tab2:
+with tabs[1]:
     st.header("AI Tools")
     content = st.session_state["results"]
     if not content:
@@ -400,7 +400,7 @@ with tab2:
             st.success(st.session_state["ai_outputs"]["translation"])
 
 # --- Q&A Tab ---
-with tab3:
+with tabs[2]:
     st.header("Document Q&A")
     content = st.session_state["results"]
     if not content:
@@ -413,7 +413,7 @@ with tab3:
             st.success(f"**Answer:** {answer['answer']}")
 
 # --- Batch Tab ---
-with tab4:
+with tabs[3]:
     st.header("Batch Processing")
     batch_files = st.file_uploader("Upload multiple files (TXT, PDF, Image, Audio)", type=["txt", "pdf", "jpg", "jpeg", "png", "mp3", "wav", "m4a"], accept_multiple_files=True)
     batch_results = []
@@ -447,7 +447,7 @@ with tab4:
             st.download_button("Download All Results as .txt", all_text, file_name="obsidian_batch_output.txt")
 
 # --- Captioning Tab ---
-with tab5:
+with tabs[4]:
     st.header("Image Captioning")
     if BlipProcessor and BlipForConditionalGeneration:
         img_file = st.file_uploader("Upload an image for captioning", type=["jpg", "jpeg", "png"], key="caption_img")
@@ -464,7 +464,7 @@ with tab5:
         st.warning("BLIP not installed. Run: pip install transformers torch")
 
 # --- Audio Analysis Tab ---
-with tab6:
+with tabs[5]:
     st.header("Audio Sentiment & Speaker Diarization")
     audio_file = st.file_uploader("Upload audio for analysis", type=["mp3", "wav", "m4a"], key="audio_analysis")
     if audio_file and aS:
@@ -478,7 +478,7 @@ with tab6:
         st.warning("pyAudioAnalysis not installed. Run: pip install pyAudioAnalysis")
 
 # --- Knowledge Graph Tab ---
-with tab7:
+with tabs[6]:
     st.header("Interactive Knowledge Graph Extraction")
     content = st.session_state["results"]
     if not content:
@@ -509,7 +509,7 @@ with tab7:
         st.warning("networkx, pyvis, or spaCy not installed. Run: pip install networkx pyvis spacy && python -m spacy download en_core_web_sm")
 
 # --- Similarity/Plagiarism Tab ---
-with tab8:
+with tabs[7]:
     st.header("Plagiarism & Similarity Detection")
     content = st.session_state["results"]
     if not content:
@@ -529,7 +529,7 @@ with tab8:
         st.warning("sentence-transformers or scikit-learn not installed. Run: pip install sentence-transformers scikit-learn")
 
 # --- Workflow Tab ---
-with tab9:
+with tabs[8]:
     st.header("Customizable Workflows (Chain Tools)")
     st.info("Select a sequence of tools to apply. (Drag-and-drop coming soon!)")
     steps = st.multiselect("Choose steps:", ["OCR", "Translate", "Summarize", "NER", "TTS"])
@@ -560,7 +560,7 @@ with tab9:
         st.code(workflow_result, language="text")
 
 # --- Timeline Extraction Tab ---
-with tab10:
+with tabs[9]:
     st.header("Timeline Extraction & Visualization")
     content = st.session_state["results"]
     if not content or not nlp:
@@ -580,7 +580,7 @@ with tab10:
             st.info("No dated events found in the text.")
 
 # --- Topic Modeling Tab ---
-with tab11:
+with tabs[10]:
     st.header("Topic Modeling & Clustering")
     content = st.session_state["results"]
     if not content:
@@ -607,7 +607,7 @@ with tab11:
             st.warning(f"Topic modeling requires scikit-learn and numpy: {e}")
 
 # --- Explainability Tab ---
-with tab12:
+with tabs[11]:
     st.header("Explainability & Model Transparency")
     content = st.session_state["results"]
     ai_outputs = st.session_state["ai_outputs"]
@@ -644,7 +644,7 @@ with tab12:
                     st.markdown(f"{sent}.")
 
 # --- Settings Tab ---
-with tab13:
+with tabs[12]:
     st.header("Settings & Privacy")
     st.markdown("- All processing is local unless you use a public API.\n- You can clear all data below.")
     if st.button("Clear All Data"):
@@ -652,7 +652,7 @@ with tab13:
         st.success("All session data cleared.")
 
 # --- History Tab ---
-with tab14:
+with tabs[13]:
     st.header("History")
     st.write("View your previous results and chat history.")
     if st.session_state.get("results"):
@@ -674,7 +674,7 @@ with tab14:
         st.write("No history yet.")
 
 # --- Export Tab ---
-with tab14:
+with tabs[14]:
     st.header("Export & Sharing")
     content = st.session_state["results"]
     ai_outputs = st.session_state["ai_outputs"]
@@ -720,7 +720,7 @@ with tab14:
             st.info("Install python-docx for Word export: pip install python-docx")
 
 # --- Accessibility Tab ---
-with tab15:
+with tabs[15]:
     st.header("Accessibility & Display Settings")
     st.markdown("**Adjust font size and enable dyslexia-friendly font.**")
     font_size = st.slider("Font Size", 12, 32, 16)
@@ -729,7 +729,7 @@ with tab15:
     st.info("Font size and font will update on next rerun or tab switch.")
 
 # --- User Profiles & Saved Sessions Tab ---
-with tab16:
+with tabs[16]:
     st.header("User Profiles & Saved Sessions")
     username = st.text_input("Enter your username to save/load your session:")
     if st.button("Save Session") and username:
@@ -748,13 +748,13 @@ with tab16:
     st.info("Sessions are saved locally in your browser session.")
 
 # --- Real-Time Collaboration Placeholder Tab ---
-with tab17:
+with tabs[17]:
     st.header("Real-Time Collaboration (Coming Soon)")
     st.info("This feature will allow multiple users to analyze and discuss the same document in real time.")
     st.markdown("If you want to help build this, open an issue or PR!")
 
 # --- Data Visualization Tab ---
-with tab18:
+with tabs[18]:
     st.header("Data Visualizations")
     import matplotlib.pyplot as plt
     import collections
@@ -789,7 +789,7 @@ with tab18:
             st.pyplot(fig)
 
 # --- Theme Picker Tab ---
-with tab19:
+with tabs[19]:
     st.header("Customizable Themes")
     theme = st.selectbox("Choose a theme:", ["Black & Navy Blue", "Classic Dark", "Light", "Solarized"])
     if theme == "Black & Navy Blue":
