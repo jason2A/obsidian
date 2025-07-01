@@ -753,7 +753,7 @@ with tabs[17]:
     st.info("This feature will allow multiple users to analyze and discuss the same document in real time.")
     st.markdown("If you want to help build this, open an issue or PR!")
 
-# --- Data Visualization Tab ---
+# --- Data Visualizations Tab ---
 with tabs[18]:
     st.header("Data Visualizations")
     import matplotlib.pyplot as plt
