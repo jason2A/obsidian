@@ -424,7 +424,8 @@ SECTIONS = [
     ("User Profiles", "👤"),
     ("Real-Time Collaboration", "🤝"),
     ("Data Visualizations", "📊"),
-    ("Theme Picker", "🎨")
+    ("Theme Picker", "🎨"),
+    ("Journey", "🛤️")
 ]
 if "active_section" not in st.session_state:
     st.session_state["active_section"] = SECTIONS[0][0]
@@ -508,6 +509,289 @@ def get_sentence_transformer():
     if SentenceTransformer:
         return SentenceTransformer('all-MiniLM-L6-v2')
     return None
+
+# --- CHATGPT-STYLE GLASSY CHAT INTERFACE ---
+# Minimal, black, glassy sidebar for settings/profile/history only
+st.markdown('''
+    <style>
+    .glass-sidebar {
+        background: rgba(10, 10, 20, 0.55) !important;
+        border-right: 2px solid rgba(255,255,255,0.08);
+        box-shadow: 4px 0 32px #000A1A44;
+        min-width: 72px; max-width: 72px;
+        padding: 1.5rem 0 1.2rem 0;
+        align-items: center;
+        z-index: 10001;
+    }
+    .glass-sidebar.expanded {
+        min-width: 220px; max-width: 220px;
+        background: rgba(10, 10, 20, 0.75) !important;
+        align-items: flex-start;
+        padding-left: 1.2rem;
+    }
+    .sidebar-section, .sidebar-settings, .sidebar-avatar {
+        color: #FFD700 !important;
+        background: none !important;
+        box-shadow: none !important;
+        font-size: 1.3rem !important;
+        margin-bottom: 1.2rem;
+        opacity: 0.7;
+        transition: opacity 0.18s, color 0.18s;
+    }
+    .sidebar-section:hover, .sidebar-settings:hover, .sidebar-avatar:hover {
+        opacity: 1;
+        color: #FFF !important;
+    }
+    .sidebar-section, .sidebar-settings {
+        cursor: pointer;
+    }
+    .sidebar-bottom {
+        margin-top: auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+        align-items: flex-start;
+    }
+    .sidebar-avatar {
+        width: 48px; height: 48px;
+        border-radius: 50%;
+        border: 2.5px solid #FFD700;
+        background: url('https://randomuser.me/api/portraits/men/32.jpg') center/cover;
+        margin-bottom: 2.5rem;
+        transition: border 0.3s, box-shadow 0.3s;
+        box-shadow: 0 2px 12px #FFD70033;
+    }
+    .sidebar-avatar:hover {
+        box-shadow: 0 0 0 8px #FFD70033, 0 2px 12px #FFD70033;
+        border: 2.5px solid #FFF;
+        animation: pulse 1.2s infinite;
+    }
+    </style>
+''', unsafe_allow_html=True)
+
+# Sidebar: only profile, settings, history
+sidebar_html = '<div class="glass-sidebar">'
+sidebar_html += '<div class="sidebar-avatar" title="Profile"></div>'
+sidebar_html += '<div class="sidebar-section" title="History">🕑</div>'
+sidebar_html += '<div class="sidebar-settings" title="Settings">⚙️</div>'
+sidebar_html += '</div>'
+st.markdown(sidebar_html, unsafe_allow_html=True)
+
+# --- Central Chat Area ---
+st.markdown('''
+    <style>
+    .chat-container {
+        margin-left: 90px;
+        margin-top: 2.5rem;
+        padding: 2.5rem 2.5rem 2.5rem 2.5rem;
+        background: rgba(20,20,30,0.22);
+        box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+        backdrop-filter: blur(32px) saturate(180%);
+        -webkit-backdrop-filter: blur(32px) saturate(180%);
+        border-radius: 32px;
+        border: 2px solid rgba(255,255,255,0.18);
+        min-height: 80vh;
+        max-width: 900px;
+        margin-right: auto;
+        margin-bottom: 2.5rem;
+        animation: fadein 0.8s cubic-bezier(.4,2,.6,1);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    .chat-bubble {
+        max-width: 70%;
+        margin-bottom: 1.2rem;
+        padding: 1.1rem 1.5rem;
+        border-radius: 22px 22px 22px 8px;
+        background: rgba(255,255,255,0.18);
+        color: #FFF;
+        font-size: 1.13rem;
+        box-shadow: 0 2px 16px #0057B822;
+        backdrop-filter: blur(12px);
+        animation: fadein 0.5s cubic-bezier(.4,2,.6,1);
+        position: relative;
+        transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+    }
+    .chat-bubble.user {
+        background: rgba(0,87,184,0.22);
+        color: #FFD700;
+        align-self: flex-end;
+        border-radius: 22px 22px 8px 22px;
+        box-shadow: 0 2px 16px #FFD70033;
+    }
+    .chat-bubble.ai {
+        background: rgba(255,255,255,0.18);
+        color: #FFF;
+        align-self: flex-start;
+        border-radius: 22px 22px 22px 8px;
+        box-shadow: 0 2px 16px #0057B822;
+    }
+    .chat-bubble:hover {
+        background: rgba(255,255,255,0.28);
+        box-shadow: 0 4px 32px #FFD70044;
+        transform: scale(1.03);
+    }
+    .chat-input-row {
+        display: flex;
+        align-items: center;
+        gap: 1.2rem;
+        margin-top: auto;
+        margin-bottom: 0.5rem;
+    }
+    .chat-input {
+        flex: 1;
+        font-size: 1.18rem;
+        padding: 1.1rem 1.5rem;
+        border-radius: 18px;
+        border: 2.5px solid #FFD700;
+        background: rgba(255,255,255,0.7);
+        color: #232946;
+        box-shadow: 0 2px 16px #FFD70033;
+        outline: none;
+        transition: border 0.22s cubic-bezier(.4,2,.6,1), box-shadow 0.22s cubic-bezier(.4,2,.6,1);
+    }
+    .chat-input:focus {
+        border: 2.5px solid #0057B8;
+        box-shadow: 0 0 0 6px #0057B822;
+    }
+    .chat-send-btn {
+        font-size: 1.3rem;
+        font-weight: 700;
+        padding: 0.9rem 1.5rem;
+        border-radius: 18px;
+        border: none;
+        background: linear-gradient(90deg, #e3e9f7 0%, #eaf6ff 100%);
+        color: #0057B8;
+        box-shadow: 0 2px 16px #FFD70033;
+        cursor: pointer;
+        transition: background 0.18s cubic-bezier(.4,2,.6,1), color 0.18s, box-shadow 0.18s, transform 0.18s cubic-bezier(.4,2,.6,1);
+        position: relative;
+        overflow: hidden;
+    }
+    .chat-send-btn:active {
+        transform: scale(0.96);
+        box-shadow: 0 2px 16px #FFD70077;
+    }
+    .chat-send-btn::after {
+        content: '';
+        position: absolute;
+        left: 50%; top: 50%;
+        width: 0; height: 0;
+        background: rgba(0,87,184,0.18);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.35s cubic-bezier(.4,2,.6,1), height 0.35s cubic-bezier(.4,2,.6,1), opacity 0.35s;
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    .chat-send-btn:active::after {
+        width: 180%; height: 180%; opacity: 0;
+        transition: width 0.35s cubic-bezier(.4,2,.6,1), height 0.35s cubic-bezier(.4,2,.6,1), opacity 0.35s;
+    }
+    .chat-input-icons {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+    }
+    .chat-input-icon {
+        font-size: 1.5rem;
+        color: #FFD700;
+        background: rgba(0,0,0,0.12);
+        border-radius: 50%;
+        padding: 0.4rem;
+        box-shadow: 0 2px 8px #FFD70022;
+        cursor: pointer;
+        transition: background 0.18s, color 0.18s, transform 0.18s;
+    }
+    .chat-input-icon.selected, .chat-input-icon:hover {
+        background: #FFD700;
+        color: #232946;
+        transform: scale(1.12);
+    }
+    .chat-preview {
+        margin-top: 0.7rem;
+        margin-bottom: 0.7rem;
+        background: rgba(255,255,255,0.13);
+        border-radius: 16px;
+        padding: 1rem 1.2rem;
+        color: #FFD700;
+        font-size: 1.05rem;
+        box-shadow: 0 2px 8px #FFD70022;
+        animation: fadein 0.5s cubic-bezier(.4,2,.6,1);
+    }
+    .chat-suggestions {
+        display: flex;
+        gap: 0.7rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .chat-suggestion {
+        background: rgba(0,87,184,0.18);
+        color: #FFD700;
+        border-radius: 12px;
+        padding: 0.4rem 1.1rem;
+        font-size: 1.01rem;
+        cursor: pointer;
+        transition: background 0.18s, color 0.18s, transform 0.18s;
+        box-shadow: 0 2px 8px #FFD70022;
+        animation: fadein 0.4s cubic-bezier(.4,2,.6,1);
+    }
+    .chat-suggestion:hover {
+        background: #FFD700;
+        color: #232946;
+        transform: scale(1.08);
+    }
+    </style>
+''', unsafe_allow_html=True)
+
+# Chat state
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
+if "chat_input" not in st.session_state:
+    st.session_state["chat_input"] = ""
+
+# Central chat container
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+
+# Show chat history
+for sender, message in st.session_state["chat_history"]:
+    bubble_class = "chat-bubble user" if sender == "user" else "chat-bubble ai"
+    st.markdown(f'<div class="{bubble_class}">{message}</div>', unsafe_allow_html=True)
+
+# Chat input row
+st.markdown('<div class="chat-input-row">', unsafe_allow_html=True)
+# Input box
+st.markdown('<input class="chat-input" id="chat_input_box" type="text" placeholder="Type a message, paste a link, or drop a file…" autocomplete="off" />', unsafe_allow_html=True)
+# Input icons (file, image, audio, mic)
+st.markdown('<div class="chat-input-icons">' +
+    '<span class="chat-input-icon" title="Upload File">📄</span>' +
+    '<span class="chat-input-icon" title="Upload Image">🖼️</span>' +
+    '<span class="chat-input-icon" title="Upload Audio">🎤</span>' +
+    '<span class="chat-input-icon" title="Voice Input">🎙️</span>' +
+    '</div>', unsafe_allow_html=True)
+# Send button
+st.markdown('<button class="chat-send-btn" id="chat_send_btn">Send</button>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Suggestions (animated chips)
+st.markdown('<div class="chat-suggestions">' +
+    '<span class="chat-suggestion">Summarize this</span>' +
+    '<span class="chat-suggestion">Translate to French</span>' +
+    '<span class="chat-suggestion">Extract entities</span>' +
+    '<span class="chat-suggestion">Visualize</span>' +
+    '</div>', unsafe_allow_html=True)
+
+# Preview area (for uploads, etc.)
+st.markdown('<div class="chat-preview">(Preview will appear here after upload or paste)</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Micro-interactions, confetti, shimmer, etc. are already in the CSS and celebrate() function
+# (Voice input, drag-and-drop, and file/image/audio handling would be implemented in the backend logic)
+# ... existing code ...
 
 # --- Analyze Tab ---
 if st.session_state["active_section"] == "Analyze":
@@ -1163,6 +1447,151 @@ if st.session_state["active_section"] == "Theme Picker":
     elif theme == "Solarized":
         st.markdown('<style>body, .stApp { background-color: #002B36; color: #839496; } .stTabs [aria-selected="true"] { background: #073642; color: #B58900; }</style>', unsafe_allow_html=True)
     st.info("Theme will update on next rerun or tab switch.")
+
+# --- EVOLUTION/JOURNEY TIMELINE SECTION ---
+if "timeline_memories" not in st.session_state:
+    st.session_state["timeline_memories"] = []
+
+if st.session_state["active_section"] == "Journey":
+    with glass_card():
+        st.markdown('''
+            <style>
+            .timeline {
+                display: flex;
+                flex-direction: column;
+                gap: 2.5rem;
+                margin-top: 1.5rem;
+                margin-bottom: 1.5rem;
+                position: relative;
+            }
+            .timeline-era {
+                display: flex;
+                align-items: flex-start;
+                gap: 2.2rem;
+                background: rgba(255,255,255,0.18);
+                border-radius: 22px;
+                box-shadow: 0 2px 16px #0057B822;
+                padding: 1.5rem 2rem;
+                animation: fadein 0.7s cubic-bezier(.4,2,.6,1);
+                position: relative;
+                border-left: 6px solid #FFD700;
+            }
+            .timeline-era:hover {
+                background: rgba(0,87,184,0.18);
+                box-shadow: 0 4px 32px #FFD70044;
+                transform: scale(1.02);
+            }
+            .timeline-mockup {
+                min-width: 80px; max-width: 80px;
+                min-height: 80px; max-height: 80px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 2.8rem;
+                background: rgba(0,87,184,0.13);
+                border-radius: 18px;
+                box-shadow: 0 2px 8px #FFD70022;
+                margin-right: 1.2rem;
+            }
+            .timeline-content {
+                flex: 1;
+            }
+            .timeline-title {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: #FFD700;
+                margin-bottom: 0.3rem;
+            }
+            .timeline-date {
+                font-size: 1.01rem;
+                color: #b3d4fc;
+                margin-bottom: 0.7rem;
+            }
+            .timeline-features {
+                font-size: 1.05rem;
+                color: #0057B8;
+                margin-bottom: 0.5rem;
+            }
+            .timeline-badge {
+                display: inline-block;
+                background: linear-gradient(90deg, #FFD700 0%, #0057B8 100%);
+                color: #232946;
+                font-size: 0.98rem;
+                font-weight: 600;
+                border-radius: 8px;
+                padding: 0.2rem 0.8rem;
+                margin-right: 0.5rem;
+                margin-bottom: 0.2rem;
+                box-shadow: 0 2px 8px #FFD70022;
+            }
+            .timeline-memory {
+                background: rgba(255,255,255,0.13);
+                border-radius: 12px;
+                padding: 0.7rem 1.2rem;
+                color: #0057B8;
+                font-size: 1.01rem;
+                margin-top: 0.5rem;
+                margin-bottom: 0.5rem;
+                box-shadow: 0 2px 8px #FFD70022;
+            }
+            </style>
+        ''', unsafe_allow_html=True)
+        st.markdown('<div class="timeline">', unsafe_allow_html=True)
+        # Timeline eras (mockups, descriptions, features)
+        timeline_eras = [
+            {
+                "title": "v1.0 – Classic Dashboard",
+                "date": "Spring 2024",
+                "mockup": "🗂️",
+                "desc": "The original Obsidian Protocol: simple, white, with tabs for each feature.",
+                "features": ["Text/PDF/URL input", "Summary", "Sentiment", "NER"],
+                "badges": ["First Release"]
+            },
+            {
+                "title": "v2.0 – Glassmorphic Revolution",
+                "date": "Summer 2024",
+                "mockup": "🪟",
+                "desc": "Major redesign: glass cards, blue/gold palette, micro-interactions.",
+                "features": ["Image/audio input", "TTS", "Translation", "Batch", "Knowledge Graph"],
+                "badges": ["Glassmorphic", "Luxury"]
+            },
+            {
+                "title": "v3.0 – ChatGPT Mode",
+                "date": "Summer 2024",
+                "mockup": "💬",
+                "desc": "Conversational, ChatGPT-style interface. Drag-and-drop, voice, AI suggestions.",
+                "features": ["Central chat", "Live preview", "Animated suggestions", "Confetti"],
+                "badges": ["Conversational", "Next-Gen"]
+            },
+            {
+                "title": "v4.0 – The Living App",
+                "date": "Future",
+                "mockup": "🧬",
+                "desc": "Live collaboration, evolution timeline, AI personas, and more.",
+                "features": ["Collaboration", "Personas", "Achievements", "Animated timeline"],
+                "badges": ["Living App", "Legendary"]
+            }
+        ]
+        for era in timeline_eras:
+            st.markdown(f'''<div class="timeline-era">
+                <div class="timeline-mockup">{era['mockup']}</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">{era['title']}</div>
+                    <div class="timeline-date">{era['date']}</div>
+                    <div class="timeline-features">{era['desc']}</div>
+                    {''.join([f'<span class="timeline-badge">{b}</span>' for b in era['badges']])}
+                    <ul style="margin:0.5rem 0 0.5rem 1.2rem; color:#0057B8;">
+                        {''.join([f'<li>{f}</li>' for f in era['features']])}
+                    </ul>
+                    {''.join([f'<div class="timeline-memory">📝 {m}</div>' for m in st.session_state["timeline_memories"] if m.get("era") == era["title"]])}
+                </div>
+            </div>''', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        # Add user memory
+        st.markdown("**Add your own memory or comment to the timeline:**")
+        memory_text = st.text_input("Share a memory, feedback, or milestone:")
+        selected_era = st.selectbox("Which era does this memory belong to?", [era["title"] for era in timeline_eras])
+        if st.button("Add to Timeline") and memory_text:
+            st.session_state["timeline_memories"].append({"era": selected_era, "text": memory_text})
+            st.success("Memory added! Refresh to see it on the timeline.")
 
 # Footer
 st.markdown("<hr style='margin-top:2em;margin-bottom:1em'>", unsafe_allow_html=True)
