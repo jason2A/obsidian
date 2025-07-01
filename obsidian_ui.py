@@ -92,13 +92,14 @@ st.set_page_config(page_title="Obsidian Protocol v2.0", layout="wide")
 # Now you can use st.markdown, st.sidebar, etc.
 st.markdown('''
     <style>
-    body, .stApp { background-color: #18191A; color: #E4E6EB; }
+    body, .stApp { background-color: #000014; color: #E4E6EB; }
     .stTextInput>div>div>input, .stTextArea textarea, .stButton>button {
-        background: #242526; color: #E4E6EB; border-radius: 8px; border: none;
+        background: #0A0A23; color: #E4E6EB; border-radius: 8px; border: none;
     }
-    .stTabs [data-baseweb="tab"] { background: #242526; color: #E4E6EB; border-radius: 8px 8px 0 0; }
-    .stTabs [aria-selected="true"] { background: #3A3B3C; color: #FFD700; }
-    .stCodeBlock { background: #242526 !important; }
+    .stTabs [data-baseweb="tab"] { background: #0A0A23; color: #E4E6EB; border-radius: 8px 8px 0 0; }
+    .stTabs [aria-selected="true"] { background: #001F3F; color: #FFD700; }
+    .stCodeBlock { background: #0A0A23 !important; }
+    .stSidebar { background: #001F3F !important; }
     </style>
 ''', unsafe_allow_html=True)
 
@@ -110,8 +111,10 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("**Features:**\n- Multilingual, TTS, Q&A, Captioning, Batch, Graphs, Privacy\n- No OpenAI API required\n- Free forever (local models/public APIs)")
 
 # Tabs for main features
-TABS = ["Analyze", "AI Tools", "Q&A", "Batch", "Captioning", "Audio Analysis", "Graph", "Similarity", "Workflow", "Settings", "History"]
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(TABS)
+TABS = [
+    "Analyze", "AI Tools", "Q&A", "Batch", "Captioning", "Audio Analysis", "Graph", "Similarity", "Workflow", "Timeline", "Topics", "Explain", "Settings", "History", "Export", "Accessibility", "User Profiles", "Real-Time Collaboration", "Data Visualizations", "Theme Picker"
+]
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19 = st.tabs(TABS)
 
 # Session state for results and chat
 if "results" not in st.session_state:
@@ -314,15 +317,87 @@ with tab2:
                 st.warning("spaCy not installed or model missing. Run: pip install spacy && python -m spacy download en_core_web_sm")
         with col4:
             st.subheader(f"Translation (EN → {lang.upper()})")
-            translator = get_translator(lang)
+            try:
+                translator = get_translator(lang)
+                translation_error = None
+            except Exception as e:
+                translator = None
+                translation_error = str(e)
             if translator:
                 if st.button("Translate", key="translate_btn") or st.session_state["ai_outputs"].get("translation"):
                     if not st.session_state["ai_outputs"].get("translation"):
-                        translation = translator(content)[0]['translation_text']
-                        st.session_state["ai_outputs"]["translation"] = translation
+                        try:
+                            translation = translator(content)[0]['translation_text']
+                            st.session_state["ai_outputs"]["translation"] = translation
+                        except Exception as e:
+                            st.session_state["ai_outputs"]["translation"] = f"[Translation Error]: {e}"
                     st.success(st.session_state["ai_outputs"]["translation"])
             else:
-                st.warning("Transformers not installed. Run: pip install transformers torch")
+                if translation_error:
+                    st.warning(f"Translation model could not be loaded: {translation_error}")
+                else:
+                    st.warning("Transformers not installed. Run: pip install transformers torch")
+
+        # --- Analyze All Button ---
+        st.markdown("---")
+        if st.button("Analyze All", key="analyze_all_btn"):
+            # Summarization
+            if summarizer:
+                try:
+                    summary = summarizer(content, max_length=130, min_length=30, do_sample=False)[0]["summary_text"]
+                except Exception as e:
+                    summary = f"[Summarization Error]: {e}"
+            else:
+                summary = "[Summarizer not available]"
+            st.session_state["ai_outputs"]["summary"] = summary
+            # Sentiment
+            if sentiment:
+                try:
+                    sent = sentiment(content)[0]
+                    sentiment_result = f"{sent['label']} (score: {sent['score']:.2f})"
+                except Exception as e:
+                    sentiment_result = f"[Sentiment Error]: {e}"
+            else:
+                sentiment_result = "[Sentiment model not available]"
+            st.session_state["ai_outputs"]["sentiment"] = sentiment_result
+            # NER
+            if nlp:
+                try:
+                    doc = nlp(content)
+                    ents = [(ent.text, ent.label_) for ent in doc.ents]
+                except Exception as e:
+                    ents = [(f"[NER Error]: {e}", "ERROR")]
+            else:
+                ents = []
+            st.session_state["ai_outputs"]["ner"] = ents
+            # Translation
+            if translator:
+                try:
+                    translation = translator(content)[0]['translation_text']
+                except Exception as e:
+                    translation = f"[Translation Error]: {e}"
+            else:
+                translation = "[Translation model not available]"
+            st.session_state["ai_outputs"]["translation"] = translation
+
+        # --- Display All Results if available ---
+        if st.session_state["ai_outputs"].get("summary"):
+            st.markdown("**Summary:**")
+            st.success(st.session_state["ai_outputs"]["summary"])
+        if st.session_state["ai_outputs"].get("sentiment"):
+            st.markdown("**Sentiment:**")
+            st.success(st.session_state["ai_outputs"]["sentiment"])
+        if st.session_state["ai_outputs"].get("ner"):
+            st.markdown("**Named Entities:**")
+            ents = st.session_state["ai_outputs"]["ner"]
+            if ents:
+                for ent, label in ents:
+                    st.markdown(f"- **{ent}**: {label}")
+            else:
+                st.info("No named entities found.")
+        if st.session_state["ai_outputs"].get("translation"):
+            st.markdown(f"**Translation (EN → {lang.upper()}):**")
+            st.success(st.session_state["ai_outputs"]["translation"])
 
 # --- Q&A Tab ---
 with tab3:
@@ -404,7 +479,7 @@ with tab6:
 
 # --- Knowledge Graph Tab ---
 with tab7:
-    st.header("Knowledge Graph Extraction")
+    st.header("Interactive Knowledge Graph Extraction")
     content = st.session_state["results"]
     if not content:
         st.info("No content loaded. Please use the Analyze tab first.")
@@ -422,6 +497,14 @@ with tab7:
             html = f.read()
         st.components.v1.html(html, height=450)
         os.remove("graph.html")
+        # Clickable entities (show sentences containing entity)
+        st.markdown("**Click an entity below to see related sentences:**")
+        selected_entity = st.selectbox("Entities:", [ent.text for ent in doc.ents]) if doc.ents else None
+        if selected_entity:
+            sentences = [sent.text for sent in doc.sents if selected_entity in sent.text]
+            st.markdown(f"**Sentences mentioning {selected_entity}:**")
+            for s in sentences:
+                st.write(s)
     else:
         st.warning("networkx, pyvis, or spaCy not installed. Run: pip install networkx pyvis spacy && python -m spacy download en_core_web_sm")
 
@@ -476,8 +559,92 @@ with tab9:
         st.success("Workflow result:")
         st.code(workflow_result, language="text")
 
-# --- Settings Tab ---
+# --- Timeline Extraction Tab ---
 with tab10:
+    st.header("Timeline Extraction & Visualization")
+    content = st.session_state["results"]
+    if not content or not nlp:
+        st.info("No content loaded or spaCy not available.")
+    else:
+        doc = nlp(content)
+        events = []
+        for sent in doc.sents:
+            if any(ent.label_ == "DATE" for ent in sent.ents):
+                date = next((ent.text for ent in sent.ents if ent.label_ == "DATE"), None)
+                events.append((date, sent.text))
+        if events:
+            st.markdown("**Timeline of Events:**")
+            for date, event in sorted(events):
+                st.markdown(f"- **{date}**: {event}")
+        else:
+            st.info("No dated events found in the text.")
+
+# --- Topic Modeling Tab ---
+with tab11:
+    st.header("Topic Modeling & Clustering")
+    content = st.session_state["results"]
+    if not content:
+        st.info("No content loaded. Please use the Analyze tab first.")
+    else:
+        try:
+            from sklearn.feature_extraction.text import CountVectorizer
+            from sklearn.decomposition import LatentDirichletAllocation
+            import numpy as np
+            sentences = [s for s in content.split('.') if len(s.split()) > 3]
+            if len(sentences) < 3:
+                st.info("Not enough content for topic modeling.")
+            else:
+                vectorizer = CountVectorizer(stop_words='english')
+                X = vectorizer.fit_transform(sentences)
+                lda = LatentDirichletAllocation(n_components=3, random_state=42)
+                lda.fit(X)
+                words = np.array(vectorizer.get_feature_names_out())
+                st.markdown("**Main Topics:**")
+                for idx, topic in enumerate(lda.components_):
+                    top_words = words[np.argsort(topic)[-5:]]
+                    st.markdown(f"- Topic {idx+1}: {', '.join(top_words)}")
+        except Exception as e:
+            st.warning(f"Topic modeling requires scikit-learn and numpy: {e}")
+
+# --- Explainability Tab ---
+with tab12:
+    st.header("Explainability & Model Transparency")
+    content = st.session_state["results"]
+    ai_outputs = st.session_state["ai_outputs"]
+    if not content or not ai_outputs:
+        st.info("No analysis results to explain. Use the AI Tools tab first.")
+    else:
+        # Show model confidence for sentiment
+        if "sentiment" in ai_outputs and "sentiment" in ai_outputs:
+            st.markdown("**Sentiment Model Confidence:**")
+            sentiment = get_sentiment()
+            if sentiment:
+                try:
+                    sent = sentiment(content, return_all_scores=True)[0]
+                    for s in sent:
+                        st.write(f"{s['label']}: {s['score']:.2f}")
+                except Exception as e:
+                    st.warning(f"Could not get confidence scores: {e}")
+        # Highlight influential words for NER
+        if "ner" in ai_outputs and nlp:
+            st.markdown("**Named Entities Highlighted:**")
+            doc = nlp(content)
+            highlighted = content
+            for ent in doc.ents:
+                highlighted = highlighted.replace(ent.text, f"**[{ent.text} ({ent.label_})]**")
+            st.markdown(highlighted)
+        # Show summary with important sentences bolded (rudimentary)
+        if "summary" in ai_outputs:
+            st.markdown("**Summary with Key Sentences:**")
+            summary = ai_outputs["summary"]
+            for sent in summary.split('. '):
+                if any(word in sent for word in ["important", "key", "notable", "critical"]):
+                    st.markdown(f"**{sent}**.")
+                else:
+                    st.markdown(f"{sent}.")
+
+# --- Settings Tab ---
+with tab13:
     st.header("Settings & Privacy")
     st.markdown("- All processing is local unless you use a public API.\n- You can clear all data below.")
     if st.button("Clear All Data"):
@@ -485,7 +652,7 @@ with tab10:
         st.success("All session data cleared.")
 
 # --- History Tab ---
-with tab11:
+with tab14:
     st.header("History")
     st.write("View your previous results and chat history.")
     if st.session_state.get("results"):
@@ -505,6 +672,135 @@ with tab11:
             st.code(text, language="text")
     else:
         st.write("No history yet.")
+
+# --- Export Tab ---
+with tab14:
+    st.header("Export & Sharing")
+    content = st.session_state["results"]
+    ai_outputs = st.session_state["ai_outputs"]
+    if not content:
+        st.info("No content to export. Use the Analyze tab first.")
+    else:
+        st.markdown("**Export your results:**")
+        # Export as Markdown
+        if st.button("Export as Markdown"):
+            md = f"# Analysis Result\n\n{content}\n\n## AI Outputs\n" + "\n".join([f"**{k.title()}**: {v}" for k, v in ai_outputs.items()])
+            st.download_button("Download Markdown", md, file_name="obsidian_output.md")
+        # Export as PDF (requires fpdf)
+        try:
+            from fpdf import FPDF
+            if st.button("Export as PDF"):
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", size=12)
+                pdf.multi_cell(0, 10, content)
+                for k, v in ai_outputs.items():
+                    pdf.multi_cell(0, 10, f"{k.title()}: {v}")
+                pdf_fp = BytesIO()
+                pdf.output(pdf_fp)
+                pdf_fp.seek(0)
+                st.download_button("Download PDF", pdf_fp, file_name="obsidian_output.pdf")
+        except Exception as e:
+            st.info("Install fpdf for PDF export: pip install fpdf")
+        # Export as Word (requires python-docx)
+        try:
+            from docx import Document
+            if st.button("Export as Word"):
+                doc = Document()
+                doc.add_heading("Analysis Result", 0)
+                doc.add_paragraph(content)
+                doc.add_heading("AI Outputs", level=1)
+                for k, v in ai_outputs.items():
+                    doc.add_paragraph(f"{k.title()}: {v}")
+                doc_fp = BytesIO()
+                doc.save(doc_fp)
+                doc_fp.seek(0)
+                st.download_button("Download Word", doc_fp, file_name="obsidian_output.docx")
+        except Exception as e:
+            st.info("Install python-docx for Word export: pip install python-docx")
+
+# --- Accessibility Tab ---
+with tab15:
+    st.header("Accessibility & Display Settings")
+    st.markdown("**Adjust font size and enable dyslexia-friendly font.**")
+    font_size = st.slider("Font Size", 12, 32, 16)
+    dyslexia_font = st.checkbox("Enable Dyslexia-Friendly Font")
+    st.markdown(f"<style>body, .stApp, .stMarkdown, .stTextInput, .stTextArea, .stButton, .stSidebar {{ font-size: {font_size}px !important; {'font-family: OpenDyslexic, Arial, sans-serif !important;' if dyslexia_font else ''} }}</style>", unsafe_allow_html=True)
+    st.info("Font size and font will update on next rerun or tab switch.")
+
+# --- User Profiles & Saved Sessions Tab ---
+with tab16:
+    st.header("User Profiles & Saved Sessions")
+    username = st.text_input("Enter your username to save/load your session:")
+    if st.button("Save Session") and username:
+        st.session_state[f"profile_{username}"] = {
+            "results": st.session_state["results"],
+            "ai_outputs": st.session_state["ai_outputs"],
+            "chat_history": st.session_state["chat_history"]
+        }
+        st.success(f"Session saved for {username}.")
+    if st.button("Load Session") and username and f"profile_{username}" in st.session_state:
+        profile = st.session_state[f"profile_{username}"]
+        st.session_state["results"] = profile["results"]
+        st.session_state["ai_outputs"] = profile["ai_outputs"]
+        st.session_state["chat_history"] = profile["chat_history"]
+        st.success(f"Session loaded for {username}.")
+    st.info("Sessions are saved locally in your browser session.")
+
+# --- Real-Time Collaboration Placeholder Tab ---
+with tab17:
+    st.header("Real-Time Collaboration (Coming Soon)")
+    st.info("This feature will allow multiple users to analyze and discuss the same document in real time.")
+    st.markdown("If you want to help build this, open an issue or PR!")
+
+# --- Data Visualization Tab ---
+with tab18:
+    st.header("Data Visualizations")
+    import matplotlib.pyplot as plt
+    import collections
+    content = st.session_state["results"]
+    ai_outputs = st.session_state["ai_outputs"]
+    if not content or not ai_outputs:
+        st.info("No analysis results to visualize. Use the AI Tools tab first.")
+    else:
+        # Entity frequency
+        if "ner" in ai_outputs and ai_outputs["ner"]:
+            st.subheader("Entity Frequency")
+            ents = [ent for ent, label in ai_outputs["ner"]]
+            counter = collections.Counter(ents)
+            fig, ax = plt.subplots()
+            ax.bar(counter.keys(), counter.values(), color="#001F3F")
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
+        # Sentiment pie chart
+        if "sentiment" in ai_outputs and "POSITIVE" in ai_outputs["sentiment"] or "NEGATIVE" in ai_outputs["sentiment"]:
+            st.subheader("Sentiment Distribution")
+            labels = ["POSITIVE", "NEGATIVE", "NEUTRAL"]
+            values = [ai_outputs["sentiment"].count(l) for l in labels]
+            fig, ax = plt.subplots()
+            ax.pie(values, labels=labels, autopct='%1.1f%%', colors=["#0074D9", "#FF4136", "#AAAAAA"])
+            st.pyplot(fig)
+        # Topic bar chart
+        if "topics" in ai_outputs and ai_outputs["topics"]:
+            st.subheader("Topic Prevalence")
+            topics = ai_outputs["topics"]
+            fig, ax = plt.subplots()
+            ax.bar([f"Topic {i+1}" for i in range(len(topics))], [len(t) for t in topics], color="#39CCCC")
+            st.pyplot(fig)
+
+# --- Theme Picker Tab ---
+with tab19:
+    st.header("Customizable Themes")
+    theme = st.selectbox("Choose a theme:", ["Black & Navy Blue", "Classic Dark", "Light", "Solarized"])
+    if theme == "Black & Navy Blue":
+        st.markdown('<style>body, .stApp { background-color: #000014; color: #E4E6EB; } .stTabs [aria-selected="true"] { background: #001F3F; color: #FFD700; }</style>', unsafe_allow_html=True)
+    elif theme == "Classic Dark":
+        st.markdown('<style>body, .stApp { background-color: #18191A; color: #E4E6EB; } .stTabs [aria-selected="true"] { background: #3A3B3C; color: #FFD700; }</style>', unsafe_allow_html=True)
+    elif theme == "Light":
+        st.markdown('<style>body, .stApp { background-color: #FFFFFF; color: #222; } .stTabs [aria-selected="true"] { background: #E0E0E0; color: #0074D9; }</style>', unsafe_allow_html=True)
+    elif theme == "Solarized":
+        st.markdown('<style>body, .stApp { background-color: #002B36; color: #839496; } .stTabs [aria-selected="true"] { background: #073642; color: #B58900; }</style>', unsafe_allow_html=True)
+    st.info("Theme will update on next rerun or tab switch.")
 
 # Footer
 st.markdown("<hr style='margin-top:2em;margin-bottom:1em'>", unsafe_allow_html=True)
