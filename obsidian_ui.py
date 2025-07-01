@@ -510,73 +510,7 @@ def get_sentence_transformer():
         return SentenceTransformer('all-MiniLM-L6-v2')
     return None
 
-# --- CHATGPT-STYLE GLASSY CHAT INTERFACE ---
-# Minimal, black, glassy sidebar for settings/profile/history only
-st.markdown('''
-    <style>
-    .glass-sidebar {
-        background: rgba(10, 10, 20, 0.55) !important;
-        border-right: 2px solid rgba(255,255,255,0.08);
-        box-shadow: 4px 0 32px #000A1A44;
-        min-width: 72px; max-width: 72px;
-        padding: 1.5rem 0 1.2rem 0;
-        align-items: center;
-        z-index: 10001;
-    }
-    .glass-sidebar.expanded {
-        min-width: 220px; max-width: 220px;
-        background: rgba(10, 10, 20, 0.75) !important;
-        align-items: flex-start;
-        padding-left: 1.2rem;
-    }
-    .sidebar-section, .sidebar-settings, .sidebar-avatar {
-        color: #FFD700 !important;
-        background: none !important;
-        box-shadow: none !important;
-        font-size: 1.3rem !important;
-        margin-bottom: 1.2rem;
-        opacity: 0.7;
-        transition: opacity 0.18s, color 0.18s;
-    }
-    .sidebar-section:hover, .sidebar-settings:hover, .sidebar-avatar:hover {
-        opacity: 1;
-        color: #FFF !important;
-    }
-    .sidebar-section, .sidebar-settings {
-        cursor: pointer;
-    }
-    .sidebar-bottom {
-        margin-top: auto;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 1.2rem;
-        align-items: flex-start;
-    }
-    .sidebar-avatar {
-        width: 48px; height: 48px;
-        border-radius: 50%;
-        border: 2.5px solid #FFD700;
-        background: url('https://randomuser.me/api/portraits/men/32.jpg') center/cover;
-        margin-bottom: 2.5rem;
-        transition: border 0.3s, box-shadow 0.3s;
-        box-shadow: 0 2px 12px #FFD70033;
-    }
-    .sidebar-avatar:hover {
-        box-shadow: 0 0 0 8px #FFD70033, 0 2px 12px #FFD70033;
-        border: 2.5px solid #FFF;
-        animation: pulse 1.2s infinite;
-    }
-    </style>
-''', unsafe_allow_html=True)
-
-# Sidebar: only profile, settings, history
-sidebar_html = '<div class="glass-sidebar">'
-sidebar_html += '<div class="sidebar-avatar" title="Profile"></div>'
-sidebar_html += '<div class="sidebar-section" title="History">🕑</div>'
-sidebar_html += '<div class="sidebar-settings" title="Settings">⚙️</div>'
-sidebar_html += '</div>'
-st.markdown(sidebar_html, unsafe_allow_html=True)
+# --- NAVIGATION FIXED: Removed conflicting minimal sidebar ---
 
 # --- Central Chat Area ---
 st.markdown('''
