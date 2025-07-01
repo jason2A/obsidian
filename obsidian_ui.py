@@ -462,9 +462,9 @@ st.markdown('''
     </script>
 ''', unsafe_allow_html=True)
 
-# Main content area as a glass card, animated margin
+# Main content area as a glass card, ChatGPT-style
 main_class = "main-content-glass expanded" if st.session_state["sidebar_expanded"] else "main-content-glass"
-st.markdown(f'<div class="{main_class}">', unsafe_allow_html=True)
+st.markdown(f'<div class="{main_class}" style="padding: 0; background: transparent;">', unsafe_allow_html=True)
 
 # Session state for results and chat
 if "results" not in st.session_state:
@@ -612,25 +612,24 @@ st.markdown('''
         margin-top: auto;
         margin-bottom: 0.5rem;
     }
-    .chat-input {
+    .chat-input, .stTextInput > div > div > input {
         flex: 1;
-        font-size: 1.18rem;
-        padding: 1.1rem 1.5rem;
-        border-radius: 18px;
-        border: 2.5px solid #FFD700;
-        background: rgba(255,255,255,0.7);
-        color: #232946;
-        box-shadow: 0 2px 16px #FFD70033;
-        outline: none;
-        transition: border 0.22s cubic-bezier(.4,2,.6,1), box-shadow 0.22s cubic-bezier(.4,2,.6,1), background 0.22s cubic-bezier(.4,2,.6,1), transform 0.18s cubic-bezier(.4,2,.6,1);
-        will-change: border, box-shadow, background, transform;
-        position: relative;
-        z-index: 2;
+        font-size: 1.18rem !important;
+        padding: 1.2rem 1.5rem !important;
+        border-radius: 24px !important;
+        border: 2px solid rgba(255,255,255,0.2) !important;
+        background: rgba(255,255,255,0.05) !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+        outline: none !important;
+        transition: all 0.3s cubic-bezier(.4,2,.6,1) !important;
+        backdrop-filter: blur(10px) !important;
+        width: 100% !important;
     }
-    .chat-input:focus {
-        border: 2.5px solid #0057B8;
-        box-shadow: 0 0 0 8px #0057B822;
-        background: rgba(255,255,255,0.9);
+    .chat-input:focus, .stTextInput > div > div > input:focus {
+        border: 2px solid #FFD700 !important;
+        box-shadow: 0 0 0 4px rgba(255,215,0,0.2), 0 4px 20px rgba(0,0,0,0.4) !important;
+        background: rgba(255,255,255,0.1) !important;
         animation: inputpulse 0.7s;
     }
     @keyframes inputpulse {
@@ -655,23 +654,30 @@ st.markdown('''
         50% { opacity: 1; transform: scale(1.2) translateY(-50%); }
         100% { opacity: 0; transform: scale(0.7) translateY(-50%); }
     }
-    .chat-send-btn {
-        font-size: 1.3rem;
-        font-weight: 700;
-        padding: 0.9rem 1.5rem;
-        border-radius: 18px;
-        border: none;
-        background: linear-gradient(90deg, #e3e9f7 0%, #eaf6ff 100%);
-        color: #0057B8;
-        box-shadow: 0 2px 16px #FFD70033;
-        cursor: pointer;
-        transition: background 0.18s cubic-bezier(.4,2,.6,1), color 0.18s, box-shadow 0.18s, transform 0.18s cubic-bezier(.4,2,.6,1);
-        position: relative;
-        overflow: hidden;
+    .chat-send-btn, .stButton > button {
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        padding: 1rem 2rem !important;
+        border-radius: 24px !important;
+        border: none !important;
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+        color: #000000 !important;
+        box-shadow: 0 4px 20px rgba(255,215,0,0.3) !important;
+        cursor: pointer !important;
+        transition: all 0.3s cubic-bezier(.4,2,.6,1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        height: auto !important;
+        min-height: 50px !important;
     }
-    .chat-send-btn:active {
-        transform: scale(0.96);
-        box-shadow: 0 2px 16px #FFD70077;
+    .chat-send-btn:hover, .stButton > button:hover {
+        background: linear-gradient(135deg, #FFA500 0%, #FFD700 100%) !important;
+        box-shadow: 0 6px 25px rgba(255,215,0,0.4) !important;
+        transform: translateY(-2px) !important;
+    }
+    .chat-send-btn:active, .stButton > button:active {
+        transform: scale(0.96) !important;
+        box-shadow: 0 2px 15px rgba(255,215,0,0.5) !important;
     }
     .chat-send-btn::after {
         content: '';
@@ -743,16 +749,150 @@ st.markdown('''
         color: #232946;
         transform: scale(1.08);
     }
+    
+    /* Style file uploaders */
+    .stFileUploader > div {
+        background: rgba(255,255,255,0.05) !important;
+        border: 2px dashed rgba(255,255,255,0.2) !important;
+        border-radius: 16px !important;
+        padding: 1rem !important;
+        transition: all 0.3s ease !important;
+    }
+    .stFileUploader > div:hover {
+        border-color: #FFD700 !important;
+        background: rgba(255,215,0,0.05) !important;
+    }
+    .stFileUploader label {
+        color: #FFD700 !important;
+        font-weight: 600 !important;
+    }
     </style>
 ''', unsafe_allow_html=True)
 
-# Enhanced chat styles will be used in Q&A section only
+# --- MAIN CHATGPT-STYLE INTERFACE ---
+# Chat state initialization
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
+if "chat_input" not in st.session_state:
+    st.session_state["chat_input"] = ""
 
-# Micro-interactions, confetti, shimmer, etc. are already in the CSS and celebrate() function
-# (Voice input, drag-and-drop, and file/image/audio handling would be implemented in the backend logic)
-# ... existing code ...
+# Main ChatGPT-style container
+st.markdown('<div class="enhanced-chat-container">', unsafe_allow_html=True)
 
-# --- Analyze Tab ---
+# Header with Obsidian Protocol branding
+st.markdown('''
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: #FFD700; font-size: 2.5rem; font-weight: 700; text-shadow: 0 4px 16px #FFD70044; margin-bottom: 0.5rem;">
+            Obsidian Protocol
+        </h1>
+        <p style="color: rgba(255,255,255,0.7); font-size: 1.1rem; margin: 0;">
+            AI-Powered Analysis & Intelligence Platform
+        </p>
+    </div>
+''', unsafe_allow_html=True)
+
+# Chat history display
+chat_history_container = st.container()
+with chat_history_container:
+    if st.session_state["chat_history"]:
+        for i, (sender, message) in enumerate(st.session_state["chat_history"]):
+            bubble_class = "chat-bubble user" if sender == "user" else "chat-bubble ai"
+            st.markdown(f'<div class="{bubble_class}">{message}</div>', unsafe_allow_html=True)
+    else:
+        # Welcome message
+        st.markdown('''
+            <div class="chat-bubble ai" style="margin: 2rem auto; max-width: 80%; text-align: center;">
+                👋 Welcome to Obsidian Protocol! I can help you analyze files, extract insights, answer questions, and much more. 
+                <br><br>
+                Try uploading a document, asking a question, or selecting from the suggestions below.
+            </div>
+        ''', unsafe_allow_html=True)
+
+# Suggestions (animated chips)
+st.markdown('''
+    <div class="chat-suggestions" style="margin: 2rem 0; text-align: center;">
+        <span class="chat-suggestion" onclick="document.getElementById('main_chat_input').value='Analyze this document'; document.getElementById('main_chat_input').focus();">📄 Analyze Document</span>
+        <span class="chat-suggestion" onclick="document.getElementById('main_chat_input').value='Summarize this content'; document.getElementById('main_chat_input').focus();">📝 Summarize</span>
+        <span class="chat-suggestion" onclick="document.getElementById('main_chat_input').value='Extract key insights'; document.getElementById('main_chat_input').focus();">💡 Extract Insights</span>
+        <span class="chat-suggestion" onclick="document.getElementById('main_chat_input').value='Create a knowledge graph'; document.getElementById('main_chat_input').focus();">🕸️ Knowledge Graph</span>
+    </div>
+''', unsafe_allow_html=True)
+
+# Main chat input area
+chat_input_col1, chat_input_col2 = st.columns([10, 1])
+
+with chat_input_col1:
+    user_input = st.text_input(
+        "",
+        placeholder="Type your message, upload a file, or ask a question...",
+        key="main_chat_input",
+        label_visibility="collapsed"
+    )
+
+with chat_input_col2:
+    send_clicked = st.button("Send", type="primary", use_container_width=True)
+
+# File upload options
+st.markdown("---")
+upload_col1, upload_col2, upload_col3, upload_col4 = st.columns(4)
+
+with upload_col1:
+    uploaded_file = st.file_uploader("📄 Upload Document", type=["txt", "pdf", "docx"], label_visibility="collapsed")
+
+with upload_col2:
+    uploaded_image = st.file_uploader("🖼️ Upload Image", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+
+with upload_col3:
+    uploaded_audio = st.file_uploader("🎤 Upload Audio", type=["mp3", "wav", "m4a"], label_visibility="collapsed")
+
+with upload_col4:
+    url_input = st.text_input("🔗 Enter URL", placeholder="https://example.com", label_visibility="collapsed")
+
+# Process input and file uploads
+if send_clicked and user_input:
+    # Add user message to chat
+    st.session_state["chat_history"].append(("user", user_input))
+    
+    # Process the input (this would connect to your existing analysis functions)
+    ai_response = f"I received your message: '{user_input}'. This would normally trigger the appropriate analysis based on your request."
+    st.session_state["chat_history"].append(("ai", ai_response))
+    
+    # Clear input
+    st.session_state["chat_input"] = ""
+    st.rerun()
+
+# Handle file uploads
+if uploaded_file:
+    st.session_state["chat_history"].append(("user", f"📄 Uploaded file: {uploaded_file.name}"))
+    ai_response = f"I've received your file '{uploaded_file.name}'. I can analyze it for you. What would you like me to do with it?"
+    st.session_state["chat_history"].append(("ai", ai_response))
+    st.rerun()
+
+if uploaded_image:
+    st.session_state["chat_history"].append(("user", f"🖼️ Uploaded image: {uploaded_image.name}"))
+    ai_response = f"I've received your image '{uploaded_image.name}'. I can extract text, describe the content, or analyze it for you."
+    st.session_state["chat_history"].append(("ai", ai_response))
+    st.rerun()
+
+if uploaded_audio:
+    st.session_state["chat_history"].append(("user", f"🎤 Uploaded audio: {uploaded_audio.name}"))
+    ai_response = f"I've received your audio file '{uploaded_audio.name}'. I can transcribe it and analyze the content for you."
+    st.session_state["chat_history"].append(("ai", ai_response))
+    st.rerun()
+
+if url_input:
+    st.session_state["chat_history"].append(("user", f"🔗 Provided URL: {url_input}"))
+    ai_response = f"I've received the URL: {url_input}. I can scrape and analyze the content for you."
+    st.session_state["chat_history"].append(("ai", ai_response))
+    st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Close main content div
+st.markdown('</div>', unsafe_allow_html=True)
+
+# --- SECTION-BASED TOOLS (Optional - Accessible via sidebar) ---
+# These sections are now secondary to the main chat interface
 if st.session_state["active_section"] == "Analyze":
     st.header("Analyze File or Content")
     analyze_type = st.selectbox("Select input type:", ["Text", "TXT File", "PDF", "URL", "YouTube Video", "Image", "Audio"])
