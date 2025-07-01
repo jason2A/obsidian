@@ -87,21 +87,111 @@ except ImportError:
     util = None
     cosine_similarity = None
 
+# Set page config and apply glassmorphic, ultra-modern CSS
 st.set_page_config(page_title="Obsidian Protocol v2.0", layout="wide")
-
-# Now you can use st.markdown, st.sidebar, etc.
 st.markdown('''
     <style>
-    body, .stApp { background-color: #000014; color: #E4E6EB; }
-    .stTextInput>div>div>input, .stTextArea textarea, .stButton>button {
-        background: #0A0A23; color: #E4E6EB; border-radius: 8px; border: none;
+    body, .stApp {
+        background: linear-gradient(135deg, #e0e7ef 0%, #f8fafc 100%);
+        color: #222;
+        font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
+        font-size: 18px;
+        letter-spacing: 0.01em;
     }
-    .stTabs [data-baseweb="tab"] { background: #0A0A23; color: #E4E6EB; border-radius: 8px 8px 0 0; }
-    .stTabs [aria-selected="true"] { background: #001F3F; color: #FFD700; }
-    .stCodeBlock { background: #0A0A23 !important; }
-    .stSidebar { background: #001F3F !important; }
+    .stTextInput>div>div>input, .stTextArea textarea, .stButton>button {
+        background: rgba(255,255,255,0.7);
+        color: #222;
+        border-radius: 18px;
+        border: 1px solid #e0e7ef;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        transition: box-shadow 0.2s, background 0.2s;
+    }
+    .stTextInput>div>div>input:focus, .stTextArea textarea:focus, .stButton>button:focus {
+        box-shadow: 0 0 0 3px #b3d4fc;
+        background: rgba(255,255,255,0.9);
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: rgba(255,255,255,0.5);
+        color: #222;
+        border-radius: 18px 18px 0 0;
+        border: 1px solid #e0e7ef;
+        margin-right: 4px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        transition: background 0.2s, color 0.2s;
+    }
+    .stTabs [aria-selected="true"] {
+        background: rgba(255,255,255,0.85);
+        color: #0057B8;
+        border-bottom: 2px solid #0057B8;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    .stCodeBlock {
+        background: rgba(255,255,255,0.7) !important;
+        color: #222 !important;
+        border-radius: 12px;
+        font-size: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .stSidebar {
+        background: rgba(255,255,255,0.6) !important;
+        color: #222 !important;
+        border-radius: 0 24px 24px 0;
+        box-shadow: 2px 0 16px rgba(0,0,0,0.04);
+    }
+    .stMarkdown, .stHeader, .stSubheader {
+        font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
+        font-size: 1.15em;
+    }
+    .stButton>button {
+        box-shadow: 0 2px 12px rgba(0,87,184,0.08);
+        background: linear-gradient(90deg, #e3e9f7 0%, #eaf6ff 100%);
+        color: #0057B8;
+        border-radius: 18px;
+        font-weight: 600;
+        transition: background 0.2s, color 0.2s, transform 0.1s;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(90deg, #d0e6ff 0%, #b3d4fc 100%);
+        color: #003366;
+        transform: scale(1.04);
+    }
+    .stDownloadButton button {
+        background: #0057B8;
+        color: #FFF;
+        border-radius: 18px;
+        font-weight: 600;
+        transition: background 0.2s, transform 0.1s;
+    }
+    .stDownloadButton button:hover {
+        background: #003366;
+        transform: scale(1.04);
+    }
+    .block-container {
+        padding: 2rem 2rem 2rem 2rem;
+        max-width: 900px;
+        margin: auto;
+    }
+    .stAlert, .stInfo, .stSuccess, .stWarning, .stError {
+        border-radius: 16px;
+        font-size: 1.05em;
+    }
     </style>
 ''', unsafe_allow_html=True)
+
+# Onboarding tour (show only once per session)
+if "onboarded" not in st.session_state:
+    st.session_state["onboarded"] = False
+if not st.session_state["onboarded"]:
+    st.info("👋 Welcome to Obsidian Protocol! Upload or paste your content, then explore the tabs for powerful AI analysis, visualizations, and more. Use the Theme Picker to personalize your experience.")
+    if st.button("Got it! Start Exploring", key="onboard_btn"):
+        st.session_state["onboarded"] = True
+
+# Confetti on successful analysis (AI Tools tab)
+def celebrate():
+    st.balloons()
+    st.success("🎉 Analysis complete! Enjoy your insights.")
 
 # Sidebar
 st.sidebar.title("🧠 Obsidian Protocol v2.0")
@@ -283,6 +373,7 @@ with tabs[1]:
                     if not st.session_state["ai_outputs"].get("summary"):
                         summary = summarizer(content, max_length=130, min_length=30, do_sample=False)[0]["summary_text"]
                         st.session_state["ai_outputs"]["summary"] = summary
+                        celebrate()
                     st.success(st.session_state["ai_outputs"]["summary"])
             else:
                 st.warning("Transformers not installed. Run: pip install transformers torch")
@@ -294,6 +385,7 @@ with tabs[1]:
                     if not st.session_state["ai_outputs"].get("sentiment"):
                         sent = sentiment(content)[0]
                         st.session_state["ai_outputs"]["sentiment"] = f"{sent['label']} (score: {sent['score']:.2f})"
+                        celebrate()
                     st.success(st.session_state["ai_outputs"]["sentiment"])
             else:
                 st.warning("Transformers not installed. Run: pip install transformers torch")
@@ -307,6 +399,7 @@ with tabs[1]:
                         doc = nlp(content)
                         ents = [(ent.text, ent.label_) for ent in doc.ents]
                         st.session_state["ai_outputs"]["ner"] = ents
+                        celebrate()
                     ents = st.session_state["ai_outputs"]["ner"]
                     if ents:
                         for ent, label in ents:
@@ -317,18 +410,25 @@ with tabs[1]:
                 st.warning("spaCy not installed or model missing. Run: pip install spacy && python -m spacy download en_core_web_sm")
         with col4:
             st.subheader(f"Translation (EN → {lang.upper()})")
-            try:
-                translator = get_translator(lang)
-                translation_error = None
-            except Exception as e:
+            if lang == "en":
                 translator = None
-                translation_error = str(e)
-            if translator:
+                translation_error = "Source and target language are both English—no translation needed."
+            else:
+                try:
+                    translator = get_translator(lang)
+                    translation_error = None
+                except Exception as e:
+                    translator = None
+                    translation_error = str(e)
+            if lang == "en":
+                st.info("Source and target language are both English—no translation needed.")
+            elif translator:
                 if st.button("Translate", key="translate_btn") or st.session_state["ai_outputs"].get("translation"):
                     if not st.session_state["ai_outputs"].get("translation"):
                         try:
                             translation = translator(content)[0]['translation_text']
                             st.session_state["ai_outputs"]["translation"] = translation
+                            celebrate()
                         except Exception as e:
                             st.session_state["ai_outputs"]["translation"] = f"[Translation Error]: {e}"
                     st.success(st.session_state["ai_outputs"]["translation"])
@@ -371,7 +471,9 @@ with tabs[1]:
                 ents = []
             st.session_state["ai_outputs"]["ner"] = ents
             # Translation
-            if translator:
+            if lang == "en":
+                translation = "Source and target language are both English—no translation needed."
+            elif translator:
                 try:
                     translation = translator(content)[0]['translation_text']
                 except Exception as e:
@@ -379,6 +481,7 @@ with tabs[1]:
             else:
                 translation = "[Translation model not available]"
             st.session_state["ai_outputs"]["translation"] = translation
+            celebrate()
 
         # --- Display All Results if available ---
         if st.session_state["ai_outputs"].get("summary"):
