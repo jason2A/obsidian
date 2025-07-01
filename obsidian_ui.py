@@ -562,98 +562,72 @@ st.markdown('''
     <style>
     .enhanced-chat-container {
         padding: 2rem;
-        background: rgba(20,20,30,0.22);
-        box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
-        backdrop-filter: blur(32px) saturate(180%);
-        -webkit-backdrop-filter: blur(32px) saturate(180%);
+        background: rgba(255,255,255,0.05);
+        box-shadow: 0 8px 32px 0 rgba(0,0,0,0.3);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
         border-radius: 24px;
-        border: 2px solid rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.1);
         margin: 1rem 0;
         animation: fadein 0.8s cubic-bezier(.4,2,.6,1);
         position: relative;
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
     }
     .chat-bubble {
-        max-width: 70%;
+        max-width: 80%;
         margin-bottom: 1.2rem;
-        padding: 1.1rem 1.5rem;
-        border-radius: 22px 22px 22px 8px;
-        background: rgba(255,255,255,0.18);
-        color: #FFF;
-        font-size: 1.13rem;
-        box-shadow: 0 2px 16px #0057B822;
-        backdrop-filter: blur(12px);
+        padding: 1.2rem 1.8rem;
+        border-radius: 18px;
+        color: #FFFFFF;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        backdrop-filter: blur(10px);
         animation: fadein 0.5s cubic-bezier(.4,2,.6,1);
         position: relative;
-        transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+        transition: all 0.3s ease;
+        word-wrap: break-word;
     }
     .chat-bubble.user {
-        background: rgba(0,87,184,0.22);
+        background: rgba(255,215,0,0.15);
         color: #FFD700;
-        align-self: flex-end;
-        border-radius: 22px 22px 8px 22px;
-        box-shadow: 0 2px 16px #FFD70033;
+        margin-left: auto;
+        border: 1px solid rgba(255,215,0,0.3);
     }
     .chat-bubble.ai {
-        background: rgba(255,255,255,0.18);
-        color: #FFF;
-        align-self: flex-start;
-        border-radius: 22px 22px 22px 8px;
-        box-shadow: 0 2px 16px #0057B822;
+        background: rgba(255,255,255,0.08);
+        color: #FFFFFF;
+        margin-right: auto;
+        border: 1px solid rgba(255,255,255,0.1);
     }
     .chat-bubble:hover {
-        background: rgba(255,255,255,0.28);
-        box-shadow: 0 4px 32px #FFD70044;
-        transform: scale(1.03);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     }
-    .chat-input-row {
-        display: flex;
-        align-items: center;
-        gap: 1.2rem;
-        margin-top: auto;
-        margin-bottom: 0.5rem;
-    }
-    .chat-input, .stTextInput > div > div > input {
-        flex: 1;
-        font-size: 1.18rem !important;
-        padding: 1.2rem 1.5rem !important;
-        border-radius: 24px !important;
-        border: 2px solid rgba(255,255,255,0.2) !important;
-        background: rgba(255,255,255,0.05) !important;
-        color: #FFFFFF !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
-        outline: none !important;
-        transition: all 0.3s cubic-bezier(.4,2,.6,1) !important;
-        backdrop-filter: blur(10px) !important;
-        width: 100% !important;
-    }
-    .chat-input:focus, .stTextInput > div > div > input:focus {
-        border: 2px solid #FFD700 !important;
-        box-shadow: 0 0 0 4px rgba(255,215,0,0.2), 0 4px 20px rgba(0,0,0,0.4) !important;
+    /* Removed problematic chat-input-row styling */
+    .stTextInput > div > div > input {
+        font-size: 1.1rem !important;
+        padding: 1rem 1.5rem !important;
+        border-radius: 25px !important;
+        border: 2px solid rgba(255,215,0,0.3) !important;
         background: rgba(255,255,255,0.1) !important;
-        animation: inputpulse 0.7s;
+        color: #FFFFFF !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+        outline: none !important;
+        transition: all 0.3s ease !important;
+        backdrop-filter: blur(15px) !important;
+        width: 100% !important;
+        height: 55px !important;
     }
-    @keyframes inputpulse {
-        0% { box-shadow: 0 0 0 0 #FFD70044; }
-        100% { box-shadow: 0 0 0 8px #0057B822; }
+    .stTextInput > div > div > input:focus {
+        border: 2px solid #FFD700 !important;
+        box-shadow: 0 0 0 3px rgba(255,215,0,0.3), 0 6px 25px rgba(0,0,0,0.3) !important;
+        background: rgba(255,255,255,0.15) !important;
+        transform: translateY(-2px);
     }
-    .chat-input.typing {
-        animation: typingpulse 0.18s;
-    }
-    @keyframes typingpulse {
-        0% { background: rgba(255,255,255,0.7); }
-        100% { background: rgba(255,255,255,0.9); }
-    }
-    .chat-input-sparkle {
-        position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
-        font-size: 1.3rem; color: #FFD700; opacity: 0.7;
-        pointer-events: none;
-        animation: sparklepop 0.5s;
-    }
-    @keyframes sparklepop {
-        0% { opacity: 0; transform: scale(0.7) translateY(-50%); }
-        50% { opacity: 1; transform: scale(1.2) translateY(-50%); }
-        100% { opacity: 0; transform: scale(0.7) translateY(-50%); }
-    }
+    /* Cleaned up unused input animations */
     .chat-send-btn, .stButton > button {
         font-size: 1.1rem !important;
         font-weight: 600 !important;
@@ -752,19 +726,26 @@ st.markdown('''
     
     /* Style file uploaders */
     .stFileUploader > div {
-        background: rgba(255,255,255,0.05) !important;
-        border: 2px dashed rgba(255,255,255,0.2) !important;
+        background: rgba(255,255,255,0.08) !important;
+        border: 2px dashed rgba(255,215,0,0.4) !important;
         border-radius: 16px !important;
-        padding: 1rem !important;
+        padding: 1.5rem !important;
         transition: all 0.3s ease !important;
+        text-align: center !important;
     }
     .stFileUploader > div:hover {
         border-color: #FFD700 !important;
-        background: rgba(255,215,0,0.05) !important;
+        background: rgba(255,215,0,0.1) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
     }
     .stFileUploader label {
         color: #FFD700 !important;
         font-weight: 600 !important;
+        font-size: 1rem !important;
+    }
+    .stFileUploader div[data-testid="stFileUploaderDropzoneInstructions"] {
+        color: rgba(255,255,255,0.7) !important;
     }
     </style>
 ''', unsafe_allow_html=True)
