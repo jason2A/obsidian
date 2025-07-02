@@ -21,12 +21,76 @@ summarizer, sentiment = load_models()
 
 # App layout
 st.set_page_config(page_title="🧠 Obsidian Protocol", layout="centered")
-st.title("🧠 Obsidian Protocol")
-st.subheader("Reveal the truth behind news, speeches, or social media posts.")
 
-text = st.text_area("Paste any text to analyze:")
+# Custom CSS for glassmorphism search box
+st.markdown(
+    """
+    <style>
+    .glass-box {
+        margin: 0 auto;
+        margin-top: 60px;
+        max-width: 600px;
+        padding: 2.5rem 2rem 2rem 2rem;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    .glass-title {
+        text-align: center;
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #222;
+        margin-bottom: 0.5rem;
+    }
+    .glass-sub {
+        text-align: center;
+        font-size: 1.1rem;
+        color: #444;
+        margin-bottom: 1.5rem;
+    }
+    .glass-search textarea {
+        border-radius: 16px !important;
+        background: rgba(255,255,255,0.7) !important;
+        border: 1px solid #ddd !important;
+        font-size: 1.1rem !important;
+        padding: 1rem !important;
+        min-height: 120px !important;
+    }
+    .stButton>button {
+        border-radius: 16px;
+        background: #222;
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.1rem;
+        padding: 0.7rem 2.2rem;
+        margin-top: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: background 0.2s;
+    }
+    .stButton>button:hover {
+        background: #444;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-if st.button("🔍 Analyze"):
+st.markdown('<div class="glass-box">', unsafe_allow_html=True)
+st.markdown('<div class="glass-title">🧠 Obsidian Protocol</div>', unsafe_allow_html=True)
+st.markdown('<div class="glass-sub">Reveal the truth behind news, speeches, or social media posts.</div>', unsafe_allow_html=True)
+
+# Glassmorphism search box
+with st.form("analyze_form"):
+    text = st.text_area("Paste any text to analyze:", key="glass_search", help="Enter text, article, or speech here.")
+    submitted = st.form_submit_button("🔍 Analyze")
+
+if 'submitted' not in locals():
+    submitted = False
+
+if submitted:
     if text.strip():
         with st.spinner("Analyzing..."):
             # Summarize
@@ -49,3 +113,5 @@ if st.button("🔍 Analyze"):
         st.json(entities)
     else:
         st.warning("Please enter some text to analyze.")
+
+st.markdown('</div>', unsafe_allow_html=True)
