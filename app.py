@@ -9,6 +9,7 @@ from PIL import Image
 import pytesseract
 import base64
 from fpdf import FPDF
+import re
 
 # Ensure SpaCy model is downloaded
 try:
@@ -72,7 +73,10 @@ def extract_text_from_url(url):
 def extract_transcript_from_youtube(url):
     try:
         video_id = url.split("v=")[-1].split("&")[0]
-        from youtube_transcript_api import YouTubeTranscriptApi
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi
+        except ImportError:
+            return "❌ youtube_transcript_api is not installed. Please install it to use this feature."
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
         return " ".join([item["text"] for item in transcript])
     except Exception as e:
@@ -97,7 +101,7 @@ def generate_pdf(summary, sentiment, entities, translation, lang):
     pdf.multi_cell(0, 10, f"Entities: {ents if ents else 'None'}")
     pdf.ln(2)
     pdf.multi_cell(0, 10, f"Translation ({lang}):\n{translation}")
-    return pdf.output(dest='S').encode('latin1') if isinstance(pdf.output(dest='S'), str) else pdf.output(dest='S')
+    return pdf.output(dest='S')
 
 def inject_confetti():
     st.markdown(
@@ -122,174 +126,134 @@ with col1:
     if st.button('🌙' if st.session_state['theme']=='light' else '☀️', key='theme_toggle'):
         st.session_state['theme'] = 'dark' if st.session_state['theme']=='light' else 'light'
 
-# Custom CSS for enhanced glassmorphism and theme
-light_css = """
+# Niagara Launcher style CSS and sidebar
+niagara_css = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
 body {
-    background: radial-gradient(ellipse at 60% 40%, #1a2a24 0%, #0d1a16 100%) !important;
+    background: linear-gradient(120deg, #232526 0%, #414345 100%) !important;
     min-height: 100vh;
+    font-family: 'Montserrat', sans-serif;
+}
+.niagara-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 72px;
+    background: rgba(0,0,0,0.18);
+    box-shadow: 2px 0 24px 0 rgba(0,0,0,0.10);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 40px;
+    z-index: 100;
+}
+.niagara-sidebar .icon-btn {
+    width: 54px; height: 54px;
+    margin-bottom: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.10);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    border: none;
+    transition: box-shadow 0.18s, background 0.18s;
+    cursor: pointer;
     position: relative;
 }
-body:before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(120deg, rgba(218,165,32,0.08) 0%, rgba(255,255,255,0.01) 100%);
-    pointer-events: none;
-    z-index: 0;
+.niagara-sidebar .icon-btn:hover, .niagara-sidebar .icon-btn.active {
+    background: rgba(0,0,0,0.22);
+    box-shadow: 0 4px 24px 0 rgba(0,255,128,0.13);
+}
+.niagara-sidebar svg {
+    width: 32px; height: 32px;
+    stroke: #111;
+    stroke-width: 2.4;
+    fill: none;
+    transition: stroke 0.18s;
+}
+.niagara-sidebar .icon-btn.active svg, .niagara-sidebar .icon-btn:hover svg {
+    stroke: #00c896;
+}
+@media (prefers-color-scheme: dark) {
+    .niagara-sidebar svg { stroke: #fff; }
+    .niagara-sidebar .icon-btn.active svg, .niagara-sidebar .icon-btn:hover svg { stroke: #00c896; }
 }
 .glass-box {
     margin: 0 auto;
-    margin-top: 60px;
-    max-width: 800px;
-    padding: 3.2rem 2.5rem 2.5rem 2.5rem;
-    border-radius: 44px;
-    background: rgba(255, 255, 255, 0.18);
-    box-shadow: 0 24px 80px 0 rgba(31, 38, 135, 0.22), 0 2px 16px 0 rgba(218,165,32,0.13);
-    backdrop-filter: blur(36px);
-    -webkit-backdrop-filter: blur(36px);
-    border: 2.5px solid rgba(218,165,32,0.32);
-    border-top: 2.5px solid #e0eafc;
-    border-bottom: 2.5px solid #cfdef3;
-    transition: box-shadow 0.3s, border 0.3s;
-    animation: fadeIn 1.2s cubic-bezier(.39,.575,.56,1.000);
+    margin-top: 80px;
+    max-width: 700px;
+    padding: 2.5rem 2rem 2rem 2rem;
+    border-radius: 36px;
+    background: rgba(0,0,0,0.18);
+    box-shadow: 0 16px 64px 0 rgba(0,0,0,0.22);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: none;
+    transition: box-shadow 0.3s;
     position: relative;
     z-index: 2;
     overflow: hidden;
 }
-.glass-box:after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 12px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.18) 0%, rgba(218,165,32,0.18) 100%);
-    opacity: 0.7;
-    filter: blur(2px);
-    pointer-events: none;
-}
-@keyframes fadeIn {
-    0% { opacity: 0; transform: translateY(40px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes glassPulse {
-    0% { box-shadow: 0 0 0 0 rgba(218,165,32,0.18); }
-    70% { box-shadow: 0 0 0 8px rgba(218,165,32,0.08); }
-    100% { box-shadow: 0 0 0 0 rgba(218,165,32,0.18); }
-}
-@keyframes ripple {
-    0% { transform: scale(1); }
-    50% { transform: scale(0.96); }
-    100% { transform: scale(1); }
-}
-@keyframes cardSpringIn {
-    0% { opacity: 0; transform: translateY(40px) scale(0.98); }
-    60% { opacity: 1; transform: translateY(-8px) scale(1.03); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes shimmerMove {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
-}
-@keyframes iconWiggle {
-    0% { transform: rotate(0deg) scale(1); }
-    20% { transform: rotate(-8deg) scale(1.08); }
-    40% { transform: rotate(8deg) scale(1.08); }
-    60% { transform: rotate(-4deg) scale(1.04); }
-    80% { transform: rotate(4deg) scale(1.04); }
-    100% { transform: rotate(0deg) scale(1); }
-}
-.glass-search textarea:focus {
-    animation: glassPulse 0.7s;
-}
-.analyze-btn:active {
-    animation: ripple 0.3s;
-}
-.glass-card {
-    animation: cardSpringIn 0.9s cubic-bezier(.39,.575,.56,1.000);
-    will-change: transform, box-shadow;
-}
-.glass-card:hover, .analyze-btn:hover {
-    box-shadow: 0 8px 40px rgba(218,165,32,0.18), 0 2px 16px 0 rgba(255,255,255,0.18);
-    transform: translateY(-4px) scale(1.025);
-}
-.glass-shimmer {
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 100%;
-    background: linear-gradient(120deg, rgba(255,255,255,0.12) 0%, rgba(218,165,32,0.08) 100%);
-    opacity: 0.5;
-    pointer-events: none;
-    z-index: 10;
-    animation: shimmerMove 4s linear infinite;
-}
-.icon-laurel:hover, .icon-feather:hover, .icon-key:hover, .icon-lock:hover {
-    animation: iconWiggle 0.7s;
-}
 .glass-title {
     text-align: center;
-    font-size: 3.1rem;
-    font-family: 'Playfair Display', serif;
-    font-weight: 700;
-    color: #e6d7b0;
-    letter-spacing: 1.5px;
-    margin-bottom: 0.4rem;
-    text-shadow: 0 2px 24px rgba(218,165,32,0.18), 0 1px 0 #fff;
-}
-.glass-sub {
-    text-align: center;
-    font-size: 1.28rem;
-    color: #b6c6b0;
-    margin-bottom: 2.1rem;
+    font-size: 2.5rem;
     font-family: 'Montserrat', sans-serif;
-    font-weight: 600;
-    opacity: 0.92;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1.2px;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.10);
 }
 .glass-search {
-    background: rgba(255,255,255,0.32);
-    border-radius: 28px;
-    box-shadow: 0 4px 32px rgba(31,38,135,0.10), 0 1.5px 8px 0 rgba(218,165,32,0.13);
-    padding: 1.4rem 1.4rem 0.7rem 1.4rem;
+    background: rgba(0,0,0,0.22);
+    border-radius: 32px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
     margin-bottom: 2.2rem;
-    border: 1.5px solid rgba(218,165,32,0.22);
+    border: none;
     position: relative;
     z-index: 3;
-    overflow: hidden;
-}
-.glass-search:before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 8px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.18) 0%, rgba(218,165,32,0.18) 100%);
-    opacity: 0.7;
-    filter: blur(1.5px);
-    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .glass-search textarea {
-    border-radius: 22px !important;
-    background: rgba(255,255,255,0.96) !important;
-    border: 2px solid #e0eafc !important;
-    font-size: 1.22rem !important;
+    border-radius: 24px !important;
+    background: rgba(0,0,0,0.13) !important;
+    border: none !important;
+    font-size: 1.3rem !important;
     padding: 1.3rem !important;
-    min-height: 120px !important;
+    min-height: 90px !important;
     font-family: 'Montserrat', sans-serif;
-    box-shadow: 0 2px 12px rgba(31,38,135,0.06);
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     transition: box-shadow 0.2s;
+}
+.glass-search textarea:focus {
+    box-shadow: 0 4px 24px rgba(0,255,128,0.13);
 }
 .analyze-btn {
     width: 100%;
-    border-radius: 22px;
-    background: linear-gradient(90deg, #bfa14a 0%, #e6d7b0 100%);
-    color: #222;
+    border-radius: 24px;
+    background: linear-gradient(90deg, #00c896 0%, #232526 100%);
+    color: #fff;
     font-weight: 700;
     font-size: 1.22rem;
     padding: 1rem 0;
     margin-top: 1.2rem;
     margin-bottom: 1.5rem;
-    box-shadow: 0 2px 12px rgba(218,165,32,0.13);
+    box-shadow: 0 2px 12px rgba(0,255,128,0.13);
     border: none;
     transition: background 0.2s, box-shadow 0.2s;
     cursor: pointer;
     letter-spacing: 0.5px;
     font-family: 'Montserrat', sans-serif;
+}
+.analyze-btn:hover {
+    background: linear-gradient(90deg, #232526 0%, #00c896 100%);
+    box-shadow: 0 4px 24px rgba(0,255,128,0.18);
 }
 .result-section {
     margin-top: 1.5rem;
@@ -300,43 +264,39 @@ body:before {
     animation: fadeIn 1.2s cubic-bezier(.39,.575,.56,1.000);
 }
 .glass-card {
-    background: rgba(255,255,255,0.38);
+    background: rgba(0,0,0,0.22);
     border-radius: 28px;
-    box-shadow: 0 4px 32px rgba(218,165,32,0.10), 0 1.5px 8px 0 rgba(255,255,255,0.13);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.10);
     padding: 1.3rem 1.3rem 1rem 1.3rem;
     min-width: 260px;
     max-width: 340px;
     flex: 1 1 320px;
-    border: 2px solid rgba(218,165,32,0.22);
+    border: none;
     margin-bottom: 0.5rem;
     transition: box-shadow 0.2s, transform 0.2s;
     position: relative;
     z-index: 4;
     overflow: hidden;
+    color: #fff;
 }
-.glass-card:before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 8px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.18) 0%, rgba(218,165,32,0.18) 100%);
-    opacity: 0.7;
-    filter: blur(1.5px);
-    pointer-events: none;
+.glass-card:hover {
+    box-shadow: 0 8px 40px rgba(0,255,128,0.18), 0 2px 16px 0 rgba(0,0,0,0.18);
+    transform: translateY(-4px) scale(1.025);
 }
 .result-title {
-    font-size: 1.22rem;
-    font-family: 'Playfair Display', serif;
+    font-size: 1.18rem;
+    font-family: 'Montserrat', sans-serif;
     font-weight: 700;
-    color: #bfa14a;
+    color: #00c896;
     margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.5em;
-    text-shadow: 0 1px 8px rgba(218,165,32,0.13);
+    text-shadow: 0 1px 8px rgba(0,255,128,0.13);
 }
 .result-content {
     font-size: 1.08rem;
-    color: #222;
+    color: #fff;
     font-family: 'Montserrat', sans-serif;
     margin-bottom: 0.5rem;
     background: none;
@@ -344,168 +304,218 @@ body:before {
     border-radius: 0;
     padding: 0;
 }
-.icon-laurel { color: #bfa14a; font-size: 1.2em; margin-right: 0.2em; }
-.icon-feather { color: #bfa14a; font-size: 1.2em; margin-right: 0.2em; }
-.icon-key { color: #bfa14a; font-size: 1.2em; margin-right: 0.2em; }
-.icon-lock { color: #bfa14a; font-size: 1.2em; margin-right: 0.2em; }
 </style>
+<div class="niagara-sidebar">
+  <div class="icon-btn active" title="Search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+  </div>
+  <div class="icon-btn" title="Upload">
+    <svg viewBox="0 0 24 24"><rect x="4" y="17" width="16" height="3" rx="1.5"/><polyline points="12 17 12 3"/><polyline points="7 8 12 3 17 8"/></svg>
+  </div>
+  <div class="icon-btn" title="Article/Link">
+    <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5"/><line x1="8" y1="3" x2="16" y2="3"/><line x1="12" y1="3" x2="12" y2="7"/></svg>
+  </div>
+  <div class="icon-btn" title="YouTube">
+    <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="4"/><polygon points="10 9 16 12 10 15 10 9"/></svg>
+  </div>
+  <div class="icon-btn" title="Image/OCR">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="8" cy="10" r="2.2"/><polyline points="21 19 15 13 9 19 3 13"/></svg>
+  </div>
+  <div class="icon-btn" title="Settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </div>
+</div>
 """
-dark_css = """
+st.markdown(niagara_css, unsafe_allow_html=True)
+
+# Add a glassy vertical sidebar with Nothing OS–style icons
+sidebar_css = """
 <style>
-body {
-    background: linear-gradient(135deg, #232526 0%, #414345 100%) !important;
-}
-.glass-box {
-    margin: 0 auto;
-    margin-top: 60px;
-    max-width: 700px;
-    padding: 2.8rem 2.2rem 2.2rem 2.2rem;
-    border-radius: 36px;
-    background: rgba(30, 34, 42, 0.38);
-    box-shadow: 0 16px 64px 0 rgba(31, 38, 135, 0.22);
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
-    border: 2px solid rgba(255, 255, 255, 0.12);
-    transition: box-shadow 0.3s;
-    animation: fadeIn 1.2s cubic-bezier(.39,.575,.56,1.000);
-}
-@keyframes fadeIn {
-    0% { opacity: 0; transform: translateY(40px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
-.glass-title {
-    text-align: center;
-    font-size: 2.8rem;
-    font-weight: 900;
-    color: #e0eafc;
-    letter-spacing: 1px;
-    margin-bottom: 0.4rem;
-    font-family: 'Segoe UI', 'Montserrat', sans-serif;
-    text-shadow: 0 2px 12px rgba(31,38,135,0.18);
-}
-.glass-sub {
-    text-align: center;
-    font-size: 1.22rem;
-    color: #b6c6e6;
-    margin-bottom: 2.1rem;
-    font-family: 'Segoe UI', 'Montserrat', sans-serif;
-    opacity: 0.85;
-}
-.glass-search textarea {
-    border-radius: 20px !important;
-    background: rgba(30,34,42,0.92) !important;
-    border: 2px solid #3a3a4a !important;
-    font-size: 1.22rem !important;
-    padding: 1.3rem !important;
-    min-height: 120px !important;
-    font-family: 'Segoe UI', 'Montserrat', sans-serif;
-    color: #e0eafc !important;
-    box-shadow: 0 2px 12px rgba(31,38,135,0.10);
-    transition: box-shadow 0.2s;
-}
-.glass-search textarea:focus {
-    box-shadow: 0 4px 24px rgba(31,38,135,0.23);
-    border: 2px solid #b6c6e6 !important;
-}
-.analyze-btn {
-    width: 100%;
-    border-radius: 20px;
-    background: linear-gradient(90deg, #232526 0%, #414345 100%);
-    color: #fff;
-    font-weight: 700;
-    font-size: 1.22rem;
-    padding: 1rem 0;
-    margin-top: 1.2rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 12px rgba(102,126,234,0.13);
-    border: none;
-    transition: background 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    font-family: 'Segoe UI', 'Montserrat', sans-serif;
-}
-.analyze-btn:hover {
-    background: linear-gradient(90deg, #414345 0%, #232526 100%);
-    box-shadow: 0 4px 24px rgba(102,126,234,0.18);
-}
-.result-section {
-    margin-top: 1.5rem;
-    animation: fadeIn 1.2s cubic-bezier(.39,.575,.56,1.000);
-}
-.result-title {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #e0eafc;
-    margin-bottom: 0.5rem;
-    font-family: 'Segoe UI', 'Montserrat', sans-serif;
+.nothing-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 68px;
+    background: rgba(255,255,255,0.13);
+    box-shadow: 2px 0 24px 0 rgba(31,38,135,0.10);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-right: 1.5px solid rgba(218,165,32,0.13);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.5em;
+    padding-top: 32px;
+    z-index: 100;
 }
-.result-content {
-    background: rgba(30,34,42,0.75);
+.nothing-sidebar .icon-btn {
+    width: 44px; height: 44px;
+    margin-bottom: 18px;
+    display: flex; align-items: center; justify-content: center;
     border-radius: 16px;
-    padding: 1.2rem 1.1rem;
-    margin-bottom: 1.1rem;
-    font-size: 1.12rem;
-    color: #e0eafc;
-    font-family: 'Segoe UI', 'Montserrat', sans-serif;
-    box-shadow: 0 1px 6px rgba(31,38,135,0.14);
-    transition: background 0.2s;
+    background: rgba(255,255,255,0.10);
+    border: 1.5px solid rgba(218,165,32,0.10);
+    transition: box-shadow 0.18s, border 0.18s, background 0.18s;
+    cursor: pointer;
+    position: relative;
+}
+.nothing-sidebar .icon-btn:hover, .nothing-sidebar .icon-btn.active {
+    background: rgba(255,255,255,0.22);
+    border: 1.5px solid #bfa14a;
+    box-shadow: 0 2px 16px 0 rgba(218,165,32,0.13);
+}
+.nothing-sidebar svg {
+    width: 26px; height: 26px;
+    stroke: #bfa14a;
+    stroke-width: 2.2;
+    fill: none;
+    transition: stroke 0.18s;
+}
+.nothing-sidebar .icon-btn.active svg {
+    stroke: #1a2a24;
 }
 </style>
 """
 
-st.markdown(light_css if st.session_state['theme']=='light' else dark_css, unsafe_allow_html=True)
+# Add Streamlit state for sidebar mode
+if 'sidebar_mode' not in st.session_state:
+    st.session_state['sidebar_mode'] = 'search'
 
-# Main UI
+# Sidebar icon mapping
+sidebar_modes = [
+    ('search', 'Search', '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>'),
+    ('upload', 'Upload', '<svg viewBox="0 0 24 24"><rect x="4" y="17" width="16" height="3" rx="1.5"/><polyline points="12 17 12 3"/><polyline points="7 8 12 3 17 8"/></svg>'),
+    ('link', 'Article/Link', '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5"/><line x1="8" y1="3" x2="16" y2="3"/><line x1="12" y1="3" x2="12" y2="7"/></svg>'),
+    ('youtube', 'YouTube', '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="4"/><polygon points="10 9 16 12 10 15 10 9"/></svg>'),
+    ('image', 'Image/OCR', '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="8" cy="10" r="2.2"/><polyline points="21 19 15 13 9 19 3 13"/></svg>'),
+    ('settings', 'Settings', '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>')
+]
+
+# Sidebar HTML with JS for interactivity
+sidebar_html = '<div class="nothing-sidebar">'
+for mode, label, icon_svg in sidebar_modes:
+    active = 'active' if st.session_state['sidebar_mode'] == mode else ''
+    sidebar_html += f'<div class="icon-btn {active}" title="{label}" onclick="window.parent.postMessage(\'sidebar_mode:{mode}\', \'*\')">{icon_svg}</div>'
+sidebar_html += '</div>'
+sidebar_js = '''<script>
+window.addEventListener('message', function(e) {
+  if (typeof e.data === 'string' && e.data.startsWith('sidebar_mode:')) {
+    const mode = e.data.split(':')[1];
+    window.location.hash = 'sidebar_mode_' + mode;
+    window.dispatchEvent(new Event('hashchange'));
+  }
+});
+window.addEventListener('hashchange', function() {
+  const mode = window.location.hash.replace('#sidebar_mode_', '');
+  if (mode) {
+    window.parent.postMessage('set_streamlit_sidebar_mode:' + mode, '*');
+  }
+});
+</script>'''
+st.markdown(sidebar_css + sidebar_html + sidebar_js, unsafe_allow_html=True)
+
+# Streamlit: update sidebar_mode from hash (simulate JS->Python)
+import streamlit.  components.v1 as components
+sidebar_mode = st.session_state['sidebar_mode']
+if '_sidebar_mode' not in st.session_state:
+    st.session_state['_sidebar_mode'] = sidebar_mode
+components.html('''<script>
+window.addEventListener('message', function(e) {
+  if (typeof e.data === 'string' && e.data.startsWith('set_streamlit_sidebar_mode:')) {
+    const mode = e.data.split(':')[1];
+    window.parent.document.dispatchEvent(new CustomEvent('streamlit:set_sidebar_mode', {detail: mode}));
+  }
+});
+window.parent.document.addEventListener('streamlit:set_sidebar_mode', function(e) {
+  window.parent.postMessage('streamlit_set_sidebar_mode:' + e.detail, '*');
+});
+</script>''', height=0)
+
+# Main UI: only sidebar and glass search/results
 st.markdown('<div class="glass-box">', unsafe_allow_html=True)
 st.markdown('<div class="glass-shimmer"></div>', unsafe_allow_html=True)
-st.markdown('<div class="glass-title" style="margin-bottom:1.5rem;"><span class="icon-laurel">&#127807;</span> Obsidian Search <span class="icon-laurel">&#127807;</span></div>', unsafe_allow_html=True)
+st.markdown('<div class="glass-title" style="margin-bottom:2.5rem;"><span class="icon-laurel">&#127807;</span> Obsidian Search <span class="icon-laurel">&#127807;</span></div>', unsafe_allow_html=True)
 
 with st.form("analyze_form"):
-    st.markdown('<div class="glass-search" style="display:flex;align-items:center;justify-content:center;">'
+    st.markdown('<div class="glass-search" style="display:flex;align-items:center;justify-content:center;position:relative;">'
                 '<span style="font-size:1.7rem;margin-right:0.7em;opacity:0.7;">🔍</span>', unsafe_allow_html=True)
-    input_text = st.text_area("", key="glass_search", help="Type or paste anything to analyze...", placeholder="Search or analyze anything...", height=80, label_visibility="collapsed")
+    input_text = ""
+    if st.session_state['sidebar_mode'] == 'search':
+        input_text = st.text_area("", key="glass_search", help="Type, paste, or drop anything to analyze...", placeholder="Search or analyze anything...", height=80, label_visibility="collapsed")
+    elif st.session_state['sidebar_mode'] == 'upload':
+        uploaded_file = st.file_uploader("Upload a .txt or .pdf", type=["txt", "pdf"])
+        if uploaded_file:
+            if uploaded_file.type == "application/pdf":
+                input_text = extract_text_from_pdf(uploaded_file)
+            elif uploaded_file.type == "text/plain":
+                input_text = uploaded_file.read().decode("utf-8")
+    elif st.session_state['sidebar_mode'] == 'link':
+        url = st.text_input("Enter Article URL")
+        if url:
+            input_text = extract_text_from_url(url)
+    elif st.session_state['sidebar_mode'] == 'youtube':
+        yt_url = st.text_input("Enter YouTube Link")
+        if yt_url:
+            input_text = extract_transcript_from_youtube(yt_url)
+    elif st.session_state['sidebar_mode'] == 'image':
+        uploaded_img = st.file_uploader("Upload Image with Text", type=["jpg", "png"])
+        if uploaded_img:
+            image = Image.open(uploaded_img)
+            st.image(image, caption="Uploaded Image", use_column_width=True)
+            input_text = pytesseract.image_to_string(image)
+            st.text_area("Extracted Text", value=input_text, height=150)
     st.markdown('</div>', unsafe_allow_html=True)
-    lang = st.selectbox("🌍 Translate summary to:", list(LANG_TO_MODEL.keys()), index=0)
     submitted = st.form_submit_button("✨ Analyze", use_container_width=True)
 
 if 'submitted' not in locals():
     submitted = False
 
+# 2. Auto-detect input type
+def detect_input_type(text):
+    if re.match(r'^https?://(www\.)?youtube\.com/watch\?v=', text):
+        return 'youtube'
+    elif re.match(r'^https?://', text):
+        return 'url'
+    elif text.strip().endswith('.pdf') or text.strip().endswith('.txt'):
+        return 'file'
+    else:
+        return 'text'
+
+# 3. Show loader/progress bar on submit
 if submitted:
     if input_text.strip():
         with st.spinner("Analyzing with Obsidian Engine..."):
-            summary = summarizer(input_text, max_length=130, min_length=30, do_sample=False)[0]['summary_text']
-            sentiment_result = sentiment(input_text)[0]
-            doc = nlp(input_text)
-            entities = [{"text": ent.text, "label": ent.label_} for ent in doc.ents]
-            translator = get_translator(lang)
-            translated = translator(summary)[0]["translation_text"]
-        inject_confetti()
-        inject_copy_js()
-        st.markdown('<div class="result-section">', unsafe_allow_html=True)
-        st.markdown('<div class="result-title">✨ Summary <button onclick="copyToClipboard(\'' + summary.replace("'", "\\'") + '\')" style="margin-left:8px;cursor:pointer;">📋</button></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="result-content">{summary}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="result-title">📊 Sentiment <button onclick="copyToClipboard(\'' + sentiment_result["label"] + '\')" style="margin-left:8px;cursor:pointer;">📋</button></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="result-content">{sentiment_result["label"]} <br> <span style="font-size:0.98rem;opacity:0.7;">Confidence: {round(sentiment_result["score"]*100, 2)}%</span></div>', unsafe_allow_html=True)
-        st.markdown('<div class="result-title">🧠 Named Entities <button onclick="copyToClipboard(\'' + ', '.join([e['text'] for e in entities]).replace("'", "\\'") + '\')" style="margin-left:8px;cursor:pointer;">📋</button></div>', unsafe_allow_html=True)
-        if entities:
-            ents_html = ''.join([f'<span style="display:inline-block;background:rgba(102,126,234,0.13);border-radius:8px;padding:0.3em 0.7em;margin:0.18em 0.3em 0.18em 0;font-size:1.01rem;font-weight:500;color:#4b3fa7;">{e["text"]} <span style="font-size:0.92rem;opacity:0.7;">({e["label"]})</span></span>' for e in entities])
-            st.markdown(f'<div class="result-content">{ents_html}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="result-content">No named entities found.</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="result-title">🌍 {lang} Translation <button onclick="copyToClipboard(\'' + translated.replace("'", "\\'") + '\')" style="margin-left:8px;cursor:pointer;">📋</button></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="result-content">{translated}</div>', unsafe_allow_html=True)
-        # PDF Download
-        pdf_bytes = generate_pdf(summary, sentiment_result, entities, translated, lang)
-        st.download_button("📄 Download PDF", data=pdf_bytes, file_name="obsidian_result.pdf", mime="application/pdf")
-        # TXT Download
-        result = f"Summary:\n{summary}\n\nSentiment: {sentiment_result['label']} ({round(sentiment_result['score'], 2)})\n\nEntities: {entities}"
-        st.markdown(generate_download_link(result, "obsidian_result.txt"), unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            input_type = detect_input_type(input_text.strip())
+            if input_type == 'youtube':
+                processed_text = extract_transcript_from_youtube(input_text.strip())
+            elif input_type == 'url':
+                processed_text = extract_text_from_url(input_text.strip())
+            elif input_type == 'file':
+                st.warning("Please use the file uploader for files.")
+                processed_text = ""
+            else:
+                processed_text = input_text.strip()
+            if processed_text:
+                summary = summarizer(processed_text, max_length=130, min_length=30, do_sample=False)[0]['summary_text']
+                sentiment_result = sentiment(processed_text)[0]
+                doc = nlp(processed_text)
+                entities = [{"text": ent.text, "label": ent.label_} for ent in doc.ents]
+                # Use default translation (French)
+                from transformers import pipeline as hfpipe
+                translator = hfpipe("translation_en_to_fr", model="Helsinki-NLP/opus-mt-en-fr")
+                translated = translator(summary)[0]["translation_text"]
+                # 4. Results as dismissible glass cards
+                st.markdown('<div class="result-section">', unsafe_allow_html=True)
+                for icon, title, content in [
+                    ("<span class='icon-feather'>&#129528;</span>", "Summary", summary),
+                    ("<span class='icon-key'>&#128273;</span>", "Sentiment", f"{sentiment_result['label']} <br> <span style='font-size:0.98rem;opacity:0.7;'>Confidence: {round(sentiment_result['score']*100, 2)}%</span>"),
+                    ("<span class='icon-lock'>&#128274;</span>", "Entities", ', '.join([f"{e['text']} ({e['label']})" for e in entities]) if entities else "No named entities found."),
+                    ("<span class='icon-laurel'>&#127807;</span>", "French Translation", translated)
+                ]:
+                    st.markdown(f'''<div class="glass-card" style="position:relative;">
+                        <div class="result-title">{icon} {title} <span onclick="this.parentElement.parentElement.style.display='none'" style="float:right;cursor:pointer;font-size:1.1em;opacity:0.5;">✖️</span></div>
+                        <div class="result-content">{content}</div>
+                    </div>''', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.warning("Please enter some text to analyze.")
+        st.warning("Please enter something to analyze.")
 
 st.markdown('</div>', unsafe_allow_html=True)
