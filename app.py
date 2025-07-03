@@ -1,33 +1,54 @@
 import streamlit as st
 from transformers import pipeline
 import spacy
-import subprocess
+from youtube_transcript_api import YouTubeTranscriptApi
 import requests
 from bs4 import BeautifulSoup
 import PyPDF2
 from PIL import Image
 import pytesseract
 import base64
+import subprocess
 
-# Ensure SpaCy model is downloaded
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
-    nlp = spacy.load("en_core_web_sm")
+# 🧠 CONFIG
+st.set_page_config(page_title="🧠 Obsidian Protocol v2.0", layout="wide")
+st.markdown("""
+    <style>
+        .main {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #0e1117;
+            color: white;
+        }
+        .stButton>button {
+            background-color: #222;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+        .stTextArea textarea {
+            background-color: #1e222a;
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# Load models with caching
+# LOAD MODELS
 @st.cache_resource
 def load_models():
+    # Ensure SpaCy model is downloaded
+    try:
+        nlp = spacy.load("en_core_web_sm")
+    except OSError:
+        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+        nlp = spacy.load("en_core_web_sm")
     summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
-    sentiment = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+    classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
     translator = pipeline("translation_en_to_fr", model="Helsinki-NLP/opus-mt-en-fr")
-    return summarizer, sentiment, translator
+    return nlp, summarizer, classifier, translator
 
-summarizer, sentiment, translator = load_models()
+nlp, summarizer, classifier, translator = load_models()
 
-# Helper functions
-
+# HELPERS
 def extract_text_from_pdf(file):
     reader = PyPDF2.PdfReader(file)
     return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
@@ -42,7 +63,6 @@ def extract_text_from_url(url):
 
 def extract_transcript_from_youtube(url):
     try:
-        from youtube_transcript_api import YouTubeTranscriptApi
         video_id = url.split("v=")[-1].split("&")[0]
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
         return " ".join([item["text"] for item in transcript])
@@ -53,13 +73,18 @@ def generate_download_link(text, filename):
     b64 = base64.b64encode(text.encode()).decode()
     return f'<a href="data:file/txt;base64,{b64}" download="{filename}">📄 Download Result</a>'
 
-# App layout
-st.set_page_config(page_title="🧠 Obsidian Protocol", layout="centered")
+# 🧩 UI
+st.title("🧠 Obsidian Protocol v2.0")
+st.caption("👓 Reveal, Decode, Translate. AI-powered media insights.")
+st.markdown("---")
 
-# Custom CSS for glassmorphism search box
+# Custom CSS for advanced glassmorphism and beautiful UI
 st.markdown(
     """
     <style>
+    body {
+        background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%) !important;
+    }
     .glass-box {
         margin: 0 auto;
         margin-top: 60px;
@@ -200,7 +225,7 @@ setTimeout(typePrompt, 800);
 """
 st.markdown(animated_placeholder_js, unsafe_allow_html=True)
 
-# Unified glassmorphism search box with all input types
+# Glassmorphism search box with integrated features
 with st.form("analyze_form"):
     input_mode = st.radio("📥 Choose input type:", ["Text", "Upload File", "Article URL", "YouTube Video", "Image (OCR)"])
     input_text = ""
@@ -239,7 +264,7 @@ if submitted:
             # Summarize
             summary = summarizer(input_text, max_length=130, min_length=30, do_sample=False)[0]['summary_text']
             # Sentiment
-            sentiment_result = sentiment(input_text)[0]
+            sentiment_result = classifier(input_text)[0]
             # NER
             doc = nlp(input_text)
             entities = [{"text": ent.text, "label": ent.label_} for ent in doc.ents]
@@ -271,3 +296,5 @@ if submitted:
         st.warning("Please enter some text to analyze.")
 
 st.markdown('</div>', unsafe_allow_html=True)
+st.markdown("---")
+st.caption("⚡ Obsidian Protocol — Advanced Insight Engine inspired by NotebookLM, GPT-4o, and AI tools.")
