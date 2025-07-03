@@ -458,77 +458,17 @@ body {
 
 st.markdown(light_css if st.session_state['theme']=='light' else dark_css, unsafe_allow_html=True)
 
+# Main UI
 st.markdown('<div class="glass-box">', unsafe_allow_html=True)
-st.markdown('<div class="glass-title">🧠 Obsidian Protocol</div>', unsafe_allow_html=True)
-st.markdown('<div class="glass-sub">Reveal, Decode, Translate. AI-powered media insights.</div>', unsafe_allow_html=True)
+st.markdown('<div class="glass-shimmer"></div>', unsafe_allow_html=True)
+st.markdown('<div class="glass-title" style="margin-bottom:1.5rem;"><span class="icon-laurel">&#127807;</span> Obsidian Search <span class="icon-laurel">&#127807;</span></div>', unsafe_allow_html=True)
 
-# Add animated placeholder text using JavaScript injection
-animated_placeholder_js = """
-<script>
-const prompts = [
-  'Paste any text to analyze...',
-  'Try a news article, speech, or tweet!',
-  'What do you want to summarize today?',
-  'Drop in your thoughts or a story...'
-];
-let i = 0;
-let j = 0;
-let currentPrompt = '';
-let isDeleting = false;
-const textarea = document.querySelector('textarea[data-testid="stTextArea"]');
-function typePrompt() {
-  if (!textarea) return;
-  if (!isDeleting && j <= prompts[i].length) {
-    currentPrompt = prompts[i].substring(0, j++);
-    textarea.setAttribute('placeholder', currentPrompt);
-    setTimeout(typePrompt, 60);
-  } else if (isDeleting && j >= 0) {
-    currentPrompt = prompts[i].substring(0, j--);
-    textarea.setAttribute('placeholder', currentPrompt);
-    setTimeout(typePrompt, 30);
-  } else {
-    isDeleting = !isDeleting;
-    if (!isDeleting) {
-      i = (i + 1) % prompts.length;
-    }
-    setTimeout(typePrompt, isDeleting ? 800 : 1200);
-  }
-}
-setTimeout(typePrompt, 800);
-</script>
-"""
-st.markdown(animated_placeholder_js, unsafe_allow_html=True)
-
-# Unified glassmorphism search box with all input types and results
 with st.form("analyze_form"):
-    input_mode = st.radio("📥 Choose input type:", [
-        "📝 Text", "📎 Upload File", "🌐 Article URL", "▶️ YouTube Video", "🖼️ Image (OCR)"
-    ], horizontal=True)
-    input_text = ""
-    if input_mode == "📝 Text":
-        input_text = st.text_area("", key="glass_search", help="Enter text, article, or speech here.", placeholder="Paste any text to analyze...", height=140)
-    elif input_mode == "📎 Upload File":
-        uploaded_file = st.file_uploader("📎 Upload a .txt or .pdf", type=["txt", "pdf"])
-        if uploaded_file:
-            if uploaded_file.type == "application/pdf":
-                input_text = extract_text_from_pdf(uploaded_file)
-            elif uploaded_file.type == "text/plain":
-                input_text = uploaded_file.read().decode("utf-8")
-    elif input_mode == "🌐 Article URL":
-        url = st.text_input("🌐 Enter Article URL")
-        if url:
-            input_text = extract_text_from_url(url)
-    elif input_mode == "▶️ YouTube Video":
-        yt_url = st.text_input("▶️ Enter YouTube Link")
-        if yt_url:
-            input_text = extract_transcript_from_youtube(yt_url)
-    elif input_mode == "🖼️ Image (OCR)":
-        uploaded_img = st.file_uploader("🖼️ Upload Image with Text", type=["jpg", "png"])
-        if uploaded_img:
-            image = Image.open(uploaded_img)
-            st.image(image, caption="Uploaded Image", use_column_width=True)
-            input_text = pytesseract.image_to_string(image)
-            st.text_area("Extracted Text", value=input_text, height=150)
+    st.markdown('<div class="glass-search" style="display:flex;align-items:center;justify-content:center;">'
+                '<span style="font-size:1.7rem;margin-right:0.7em;opacity:0.7;">🔍</span>', unsafe_allow_html=True)
+    input_text = st.text_area("", key="glass_search", help="Type or paste anything to analyze...", placeholder="Search or analyze anything...", height=80, label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+    lang = st.selectbox("🌍 Translate summary to:", list(LANG_TO_MODEL.keys()), index=0)
     submitted = st.form_submit_button("✨ Analyze", use_container_width=True)
 
 if 'submitted' not in locals():
